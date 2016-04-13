@@ -1,0 +1,461 @@
+﻿html,body,div.body-content,.panel-background,.fill {
+}
+
+div.navbar-inverse {
+    background-color: #243241;
+    border-bottom: solid 1px #113;
+}
+
+div.navbar-header button.navbar-toggle {
+    display: inline-block;
+    float: left;
+    margin-left: 10px;
+}
+
+.navbar-brand {
+    font-family: monospace,"Courier New";
+    color: #f9f2f4;
+}
+
+body {
+    padding-top: 50px;
+    padding-bottom: 0;
+}
+
+/* Set padding to keep content from hitting the edges */
+.body-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+#background {
+    position: fixed;
+    bottom:0px;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: #00325d;
+    background: radial-gradient(ellipse, #016cbe, #0d2332), #1f6dab;
+    z-index: -1;
+}
+
+/* Override the default bootstrap behavior where horizontal description lists 
+   will truncate terms that are too long to fit in the left column 
+*/
+.dl-horizontal dt {
+    white-space: normal;
+}
+
+/* Set width on the form input elements since they're 100% wide by default */
+input,
+select,
+textarea {
+    max-width: 280px;
+}
+
+.clickable {
+    cursor:pointer;
+}
+
+th {
+    white-space:nowrap;
+    font-family:'Courier New' 'Lucida Console' sans-serif;
+}
+
+#main {
+    padding:20px 0;
+}
+
+.panel-background {
+    background:white;
+    box-shadow: 0 0 8px 4px #111;
+    padding: 20px;
+}
+
+#main .pre-scrollable {
+    padding:20px;
+}
+
+
+
+
+p {
+    margin-top:10px;
+}
+
+div.border {
+    border:solid 1px #ccc;
+    border-radius:4px;
+    padding:10px;
+}
+
+.two-column {
+    white-space:nowrap;
+}
+
+.two-column > div {
+    display:inline-block;
+    max-width:50%;
+    vertical-align:top;
+}
+
+input[type=checkbox].form-control,
+input[type=radio].form-control  {
+    width:34px;
+    margin-top:0;
+}
+
+input[type=radio].form-control  {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.syntaxhighlighter {
+    border:solid 1px #ccc;
+    border-radius:4px;
+    padding:10px 0;
+}
+
+.syntaxhighlighter .toolbar {
+    display:none;
+}
+
+.form-group.four > label {
+    display:inline-block;
+    width:24%;
+    text-align:center;
+}
+
+label > .form-control {
+    margin:0 auto;
+}
+
+ul.themed {
+    list-style-type: none;
+    padding: 0;
+}
+
+ul.themed li {
+    border-bottom: solid 1px #ccc;
+    padding: 5px 0;
+}
+
+ul.themed li:last-child {
+    border-bottom: none;
+}
+
+
+
+/*---------------------*/
+/* left menu           */
+/*---------------------*/
+.menu-btn {
+  display: block;
+  margin-right: 0;
+  margin-left: 0;
+  padding-left: 0;
+  padding-right: 0;
+  text-shadow: none;
+  color: #dddddd;
+  font-weight: 200;
+  border-bottom: 1px solid #282828;
+  border-top: solid 1px #505050;
+  text-shadow: 1px 1px #333333;
+  width: 93px;
+  text-align: center;
+}
+.menu-btn-hover {
+  background-color: #3d3d3d;
+  background-image: -moz-linear-gradient(top, #3d3d3d, #222222);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#3d3d3d), to(#222222));
+  background-image: -webkit-linear-gradient(top, #3d3d3d, #222222);
+  background-image: -o-linear-gradient(top, #3d3d3d, #222222);
+  background-image: linear-gradient(to bottom, #3d3d3d, #222222);
+  text-decoration: none;
+  outline: none;
+}
+div.nav-container {
+/*  -moz-box-shadow: 5px 5px 6px 3px rgba(1, 1, 1, 0.5);
+  -webkit-box-shadow: 5px 5px 6px 3px rgba(1, 1, 1, 0.5);
+  box-shadow: 5px 5px 6px 3px rgba(1, 1, 1, 0.5);*/
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: block;
+  height: 100%;
+  padding-top: 51px;
+  z-index: 66;
+  background-color: #243241;
+  width: 93px;
+  margin: 0;
+  -moz-transition: margin-left 0.3s, opacity 0.3s;
+  -o-transition: margin-left 0.3s, opacity 0.3s;
+  -webkit-transition: margin-left 0.3s, opacity 0.3s;
+  transition: margin-left 0.3s, opacity 0.3s;
+}
+div.relative-container {
+  position: relative;
+  height: 100%;
+}
+div.nav-container.collapse {
+  margin-left: -294px;
+  -moz-box-shadow: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+/* first level */
+ul.leftnav {
+  border-right: solid 1px #113;
+  display: block;
+  left: 0;
+  top: 0;
+  margin: 0;
+  width: 93px;
+  height: 100%;
+  background-color: #243241;
+  border-top: solid 1px #656565;
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+  z-index: 66;
+  -moz-transition: margin-left 0.3s;
+  -o-transition: margin-left 0.3s;
+  -webkit-transition: margin-left 0.3s;
+  transition: margin-left 0.3s;
+}
+ul.leftnav > li {
+  float: none;
+  position: static;
+  /*> a:hover {
+            .menu-btn-hover;
+
+            > span.glyphicon {
+                border-color: transparent;
+                background-color: transparent;
+            }
+        }*/
+}
+ul.leftnav > li > a {
+  display: block;
+  margin-right: 0;
+  margin-left: 0;
+  padding-left: 0;
+  padding-right: 0;
+  text-shadow: none;
+  color: #dddddd;
+  font-weight: 200;
+  border-bottom: 1px solid #282828;
+  border-top: solid 1px #505050;
+  text-shadow: 1px 1px #333333;
+  width: 93px;
+  text-align: center;
+}
+ul.leftnav > li > a > span.glyphicon {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 3px;
+  border: solid 1px transparent;
+  background-color: transparent;
+  border-radius: 13px;
+  width: 26px;
+  height: 26px;
+  color: #dddddd;
+  padding-top: 5px;
+}
+ul.leftnav > li > a:hover,
+ul.leftnav > li a.active,
+ul.leftnav > li > a:focus {
+  background-color: #ebebeb;
+  color: #404040;
+  text-shadow: none;
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid #ddd;
+  text-decoration: none;
+}
+ul.leftnav > li > a:hover > span.glyphicon,
+ul.leftnav > li a.active > span.glyphicon,
+ul.leftnav > li > a:focus > span.glyphicon {
+  border-color: #404040;
+  background-color: #404040;
+}
+ul.leftnav > li > a.active + ul,
+ul.leftnav > li > a:focus + ul {
+  visibility: visible;
+  opacity: 1.0;
+}
+/* second level */
+ul.leftnav ul {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 93px;
+  width: 200px;
+  height: 100%;
+  overflow: auto;
+  padding: 3px;
+  visibility: hidden;
+  opacity: 0;
+  -moz-transition: opacity 0.5s;
+  -o-transition: opacity 0.5s;
+  -webkit-transition: opacity 0.5s;
+  transition: opacity 0.5s;
+  list-style: none;
+  list-style-type: none;
+  background-color: #ebebeb;
+}
+ul.leftnav ul h5 {
+  text-transform: uppercase;
+  color: #505050;
+  text-align: center;
+  margin-top: 17px;
+}
+ul.leftnav ul > li {
+  position: static;
+}
+ul.leftnav ul > li > a {
+  margin-right: 0;
+  margin-left: 0;
+  padding-left: 0;
+  padding-right: 0;
+  color: #dddddd;
+  font-weight: 200;
+  border-bottom: 1px solid #282828;
+  border-top: solid 1px #505050;
+  text-shadow: 1px 1px #333333;
+  width: 93px;
+  text-align: center;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 15px;
+  font-size: 13pt;
+  color: #404040;
+  text-shadow: none;
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid #ddd;
+}
+ul.leftnav ul > li > a > span.glyphicon {
+  margin-right: 10px;
+}
+ul.leftnav ul > li > a:hover,
+ul.leftnav ul > li a:focus {
+  background-color: #f5f5f5;
+  background-image: -moz-linear-gradient(top, #ffffff, #e6e6e6);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff), to(#e6e6e6));
+  background-image: -webkit-linear-gradient(top, #ffffff, #e6e6e6);
+  background-image: -o-linear-gradient(top, #ffffff, #e6e6e6);
+  background-image: linear-gradient(to bottom, #ffffff, #e6e6e6);
+  background-repeat: repeat-x;
+  border: 1px solid #bbb;
+  text-decoration: none;
+}
+
+.progress {
+    margin-bottom: 0;
+}
+
+.navbar-fixed-top .progress {
+    margin: 16px 20px 0 0;
+    width: 240px;
+    height: 18px;
+    float: right;
+    display: none;
+    border-top: solid 1px #181818;
+    border-left: solid 1px #181818;
+}
+
+
+.footer {
+  background-color: #243241;
+  padding: 3px 0 0 10px;
+  color: #eee;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: -30px;
+  height: 30px;
+  line-height: 24px;
+  transition: 1s bottom;
+  transition-delay: 0.6s;
+  border-top: solid 1px #113;
+}
+.footer.show {
+  transition: 0.1s bottom;
+  transition-delay: 0s;
+  bottom: 0;
+}
+.footer .progress {
+  margin: 3px 10px 0 0;
+  width: 240px;
+  height: 18px;
+  float: right;
+  display: none;
+  border-top: solid 1px #181818;
+  border-left: solid 1px #181818;
+}
+@media screen and (max-width: 767px) {
+  .footer {
+    text-align: center;
+  }
+  .footer .copyright {
+    display: none;
+  }
+  .footer .progress {
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+
+.bar-outer
+{
+    /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#3a3a3a+0,7d7e7d+100 */
+    background: rgb(58,58,58); /* Old browsers */
+    background: -moz-linear-gradient(top,  rgba(58,58,58,1) 0%, rgba(125,126,125,1) 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(top,  rgba(58,58,58,1) 0%,rgba(125,126,125,1) 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom,  rgba(58,58,58,1) 0%,rgba(125,126,125,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3a3a3a', endColorstr='#7d7e7d',GradientType=0 ); /* IE6-9 */
+    height: 20px;
+    border-radius: 13px;
+    border: solid 1px #111;
+    border-bottom-color: #555;
+    border-right-color: #555;
+    overflow: hidden;
+}
+.bar-inner
+{
+    /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#00b7ea+0,009ec3+100;Blue+3D+%2315 */
+    background: rgb(0,183,234); /* Old browsers */
+    background: -moz-linear-gradient(top,  rgba(0,183,234,1) 0%, rgba(0,158,195,1) 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(top,  rgba(0,183,234,1) 0%,rgba(0,158,195,1) 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom,  rgba(0,183,234,1) 0%,rgba(0,158,195,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#00b7ea', endColorstr='#009ec3',GradientType=0 ); /* IE6-9 */
+
+    height: 100%;
+    width: 50%;
+    border-radius: 0 13px 13px 0;
+}
+
+.row.panel-background {
+    margin-bottom: 20px;
+}
+
+textarea {
+    width: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    height:400px;
+    font-family: monospace;
+}
+
+h3 > code {
+    margin:0;
+    font-size: 90%;
+    color: #f9f2f4;
+    background-color: transparent;
+    text-shadow: 0 0 10px #000;
+    display: block;
+}
