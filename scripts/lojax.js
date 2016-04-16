@@ -86,11 +86,24 @@ var lojax = lojax || {};
         afterInject: 'afterInject',
         ajaxError: 'ajaxError'
     };
-    
+
+    Object.getOwnPropertyNames(jx.events).forEach(function(prop){
+        jx[prop] = function(handler) {
+            if (typeof handler == 'function') {
+                $(document).on(lojax.events[prop], handler);
+            }
+        };
+    });
+
     jx.config = {
         prefix: 'jx-',
         transition: 'fade-in',
-        navHistory: true
+        navHistory: false,
+        setNavHistory: function(b) {
+            jx.config.navHistory = b;
+            b ? window.addEventListener( "hashchange", jx.Controller.handleHash, false )
+              : window.removeEventListener( "hashchange", jx.Controller.handleHash, false );
+        }
     };
     
     jx.select = {
@@ -133,7 +146,7 @@ var lojax = lojax || {};
                 self.preloadAsync();
     
                 // check window.location.hash for valid hash
-                if ( priv.hasHash() ) {
+                if ( jx.config.navHistory && priv.hasHash() ) {
                     setTimeout( self.handleHash );
                 }
             } );
@@ -168,6 +181,8 @@ var lojax = lojax || {};
         },
     
         handleRequest: function ( evt ) {
+            if (!jx.config.navHistory) return;
+
             evt.stopPropagation();
     
             // handles click, change, submit, keydown (enter)

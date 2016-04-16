@@ -404,7 +404,9 @@ gp.Controller.prototype = {
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
-        var command, lower, elem, dataItem,
+        var lower,
+            elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
+            dataItem = elem ? this.config.map.get( elem ) : null,
             node = this.config.node,
             command = evt.selectedTarget.attributes['value'].value;
 
@@ -416,16 +418,18 @@ gp.Controller.prototype = {
                 break;
             case 'edit':
                 // the button is inside either a table row or a modal
-                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
-                dataItem = elem ? this.config.map.get( elem ) : null;
-                dataItem = this.config.map.get( elem );
                 this.editRow( dataItem, elem );
                 break;
             case 'delete':
             case 'destroy':
-                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
-                dataItem = elem ? this.config.map.get( elem ) : null;
                 this.deleteRow( dataItem, elem );
+                break;
+            default:
+                // look for a custom command
+                var fn = gp.getObjectAtPath( command );
+                if ( typeof fn == 'function' ) {
+                    gp.applyFunc( fn, this.config.node.api, [dataItem] );
+                }
                 break;
         }
     },
@@ -1403,11 +1407,11 @@ gp.Formatter.prototype = {
 
         try {
             if ( /^(date|datestring)$/.test( type ) ) {
-                format = format || 'M/D/YYYY H:mm a';
+                format = format || 'M/D/YYYY h:mm a';
                 return moment( val ).format( format );
             }
             if ( type === 'timestamp' ) {
-                format = format || 'M/D/YYYY H:mm a';
+                format = format || 'M/D/YYYY h:mm a';
                 val = parseInt( val.match( gp.rexp.timestamp )[1] );
                 return moment( val ).format( format );
             }
@@ -1597,7 +1601,7 @@ gp.helpers = {
             html.add( ' pager-' + this.pager );
         }
         if ( this.responsive ) {
-            html.add( ' responsive' );
+            html.add( ' table-responsive' );
         }
         if ( this.search ) {
             html.add( ' search-' + this.search );
@@ -2118,12 +2122,15 @@ gp.Model.prototype = {
     read: function ( requestModel, done, fail ) {
         var self = this;
 
-        this.reader.read (
+        this.reader.read(
             requestModel,
-            // make sure we explicitly wrap the arg in an array
-            // if arg is an array of data, then applyFunc will end up only grabbing the first dataItem
-            function ( arg ) { gp.applyFunc( done, self, [arg] ); },
-            function ( arg ) { gp.applyFunc( fail, self, [arg] ); }
+            // make sure we wrap result in an array when we return it
+            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
+            function ( result ) {
+                result = self.resolveResult( result );
+                gp.applyFunc( done, self, [result] );
+            },
+            function ( result ) { gp.applyFunc( fail, self, [result] ); }
         );
     },
 
@@ -2185,257 +2192,18 @@ gp.Model.prototype = {
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
+    },
+
+    resolveResult: function ( result ) {
+        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
+            //  wrap the array in a PagingModel
+            return new gp.PagingModel( result );
+        }
+        return result;
     }
 
+
 };
-
-( function () {
-
-    gp.node = function ( elem ) {
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( this.elem );
-        }
-        return new n( elem );
-    };
-
-    var proxyListener = function ( elem, event, targetSelector, listener ) {
-
-        this.handler = function ( evt ) {
-
-            var e = evt.target;
-
-            // get all the elements that match targetSelector
-            var potentials = elem.querySelectorAll( targetSelector );
-
-            // find the first element that matches targetSelector
-            // usually this will be the first one
-            while ( e ) {
-                for ( var j = 0; j < potentials.length; j++ ) {
-                    if ( e == potentials[j] ) {
-                        // don't modify the listener's context to preserve the ability to use bind()
-                        // set selectedTarget to the matching element instead
-                        evt.selectedTarget = e;
-                        listener( evt );
-                        return;
-                    }
-                }
-                e = e.parentElement;
-            }
-        };
-
-        this.remove = function () {
-            elem.removeEventListener( event, this.handler );
-        };
-
-        // handle event
-        elem.addEventListener( event, this.handler, false );
-    };
-
-    var n = function ( elem ) {
-        this.elem = elem;
-    };
-
-    n.prototype = {
-        addClass: function ( cn ) {
-            if ( this.elem && !gp.hasClass( this.elem, cn ) ) {
-                this.elem.className = ( this.elem.className === '' ) ? cn : this.elem.className + ' ' + cn;
-            }
-            return this;
-        },
-
-        attr: function ( name, value ) {
-            if ( !this.elem ) return this;
-            if ( gp.hasValue( value ) ) {
-                this.elem.setAttribute( name, value );
-                return this;
-            }
-            return this.elem.attributes[name].value
-        },
-
-        closest: function ( selector, parentNode ) {
-            var e, potentials, j;
-
-            if ( this.elem ) {
-                parentNode = parentNode || document;
-
-                // start with this.elem's immediate parent
-                e = this.elem.parentElement;
-
-                potentials = parentNode.querySelectorAll( selector );
-
-                while ( e ) {
-                    for ( j = 0; j < potentials.length; j++ ) {
-                        if ( e == potentials[j] ) {
-                            this.elem = e;
-                            return this;
-                        }
-                    }
-                    e = e.parentElement;
-                }
-            }
-
-            return this;
-        },
-
-        create: function ( tagName ) {
-            var n = document.createElement( tagName );
-
-            if ( this.elem ) {
-                this.elem.appendChild( n );
-            }
-
-            this.elem = n;
-
-            return this;
-        },
-
-        disable: function ( seconds ) {
-            if ( !this.elem ) return this;
-            var self = this;
-            this.elem.setAttribute( 'disabled', 'disabled' );
-            this.addClass( 'disabled' );
-            if ( typeof seconds == 'number' && seconds > 0 ) {
-                setTimeout( function () {
-                    self.enable();
-                }, seconds * 1000 );
-            }
-            return this;
-        },
-
-        enable: function () {
-            if ( this.elem ) {
-                this.elem.removeAttribute( 'disabled' );
-                this.removeClass( 'disabled' );
-            }
-            return this;
-        },
-
-        find: function ( selector ) {
-            this.elem = this.elem || document;
-            var e = this.elem.querySelector( selector );
-            return gp.node(e);
-        },
-
-        getAttributes: function () {
-            if ( !this.elem ) return null;
-            var config = {}, name, attr, attrs = this.elem.attributes;
-            for ( var i = attrs.length - 1; i >= 0; i-- ) {
-                attr = attrs[i];
-                name = attr.name.toLowerCase().replace( '-', '' );
-                // convert "true", "false" and empty to boolean
-                config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
-                    ( attr.value === "true" || attr.value === '' ) : attr.value;
-            }
-            return config;
-        },
-
-        hasClass: function ( cn ) {
-            if ( !this.elem ) return null;
-            return ( ' ' + this.elem.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
-        },
-
-        html: function ( html ) {
-            if ( this.elem ) {
-                if ( !gp.hasValue( html ) ) return this.elem.innerHTML;
-                this.elem.innerHTML = html;
-            }
-            return this;
-        },
-
-        off: function ( event, listener ) {
-            if ( !this.elem ) return this;
-            // check for a matching listener store on the element
-            var listeners = this.elem['gp-listeners-' + event];
-            if ( listeners ) {
-                for ( var i = 0; i < listeners.length; i++ ) {
-                    if ( listeners[i].pub === listener ) {
-
-                        // remove the event handler
-                        listeners[i].priv.remove();
-
-                        // remove it from the listener store
-                        listeners.splice( i, 1 );
-                        return this;
-                    }
-                }
-            }
-            else {
-                this.elem.removeEventListener( event, listener );
-            }
-            return this;
-        },
-
-        // this allows us to attach an event handler to the document
-        // and handle events that match a selector
-        on: function ( event, targetSelector, listener ) {
-            if ( !this.elem ) return this;
-
-            if ( !gp.hasValue( this.elem ) ) {
-                return;
-            }
-
-            if ( typeof targetSelector === 'function' ) {
-                this.elem.addEventListener( event, targetSelector, false );
-                return this;
-            }
-
-            var proxy = new proxyListener( this.elem, event, targetSelector, listener );
-
-            // use an array to store privateListener 
-            // so we can remove the handler with gp.off
-            var propName = 'gp-listeners-' + event;
-            var listeners = this.elem[propName] || ( this.elem[propName] = [] );
-            listeners.push( {
-                pub: listener,
-                priv: proxy
-            } );
-
-            return this;
-        },
-
-        parent: function () {
-            if ( this.elem && this.elem.parentElement ) {
-                this.elem = this.elem.parentElement;
-            }
-            return this;
-        },
-
-        prepend: function ( child ) {
-            if ( !this.elem ) return this;
-            if ( !this.elem.firstChild ) {
-                this.elem.appendChild( child );
-            }
-            else {
-                this.elem.insertBefore( child, this.elem.firstChild );
-            }
-            this.elem = child;
-            return this;
-        },
-
-        raiseEvent: function ( name, detail ) {
-            if ( !this.elem ) return this;
-            var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
-            this.elem.dispatchEvent( event );
-            return this;
-        },
-
-        removeClass: function ( cn ) {
-            if ( this.elem ) {
-                this.elem.className = gp.trim(( ' ' + this.elem.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            }
-            return this;
-        },
-
-        root: function () {
-            if ( !this.elem ) return this;
-            while ( this.elem.parentElement ) {
-                this.elem = this.elem.parentElement;
-            }
-            return this;
-        }
-    };
-
-} )();
 
 /***************\
    NodeBuilder
@@ -2693,29 +2461,10 @@ gp.FunctionPager.prototype = {
     read: function ( model, callback, error ) {
         try {
             var self = this,
-                result = this.config.read( model, function ( result ) {
-                    if ( gp.hasValue( result ) ) {
-                        result = self.resolveResult( result );
-                        if ( gp.hasValue( result ) ) {
-                            callback( result );
-                        }
-                        else {
-                            error( 'Unsupported return value.' );
-                        }
-                    }
-                    else {
-                        callback();
-                    }
-                } );
+                result = this.config.read( model, callback.bind( this ) );
             // check if the function returned a value instead of using the callback
             if ( gp.hasValue( result ) ) {
-                result = this.resolveResult( result );
-                if ( gp.hasValue( result ) ) {
-                    callback( result );
-                }
-                else {
-                    error( 'Unsupported return value.' );
-                }
+                callback( result );
             }
         }
         catch (ex) {
@@ -2727,20 +2476,6 @@ gp.FunctionPager.prototype = {
             }
             gp.error( ex );
         }
-    },
-    resolveResult: function ( result ) {
-        if ( result != undefined ) {
-            var type = gp.getType( result );
-            if ( type == 'array' ) {
-                //  wrap the array in a PagingModel
-                return new gp.PagingModel( result );
-            }
-            else if ( type == 'object' ) {
-                // assume it's a PagingModel
-                return result;
-            }
-        }
-
     }
 };
 
@@ -3600,7 +3335,8 @@ if (document.registerElement) {
     };
 
     gp.Gridponent.detachedCallback = function () {
-        this.api.dispose();
+        var tbl = this.querySelector('.table-container');
+        if (tbl && tbl.api) tbl.api.dispose();
     };
 
     document.registerElement('grid-ponent', {

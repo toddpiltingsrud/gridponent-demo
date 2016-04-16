@@ -1,4 +1,3 @@
-<?php include "../partials/nocache.php"; ?>
 <div jx-panel="content-body">
 
     <h3>
@@ -13,11 +12,11 @@
                 fixed-headers
                 responsive="true"
                 sorting 
-                onrowselect="#pages/product-detail.php?id={{ProductID}}"
+                rowselected="fns.showProduct"
                 read="data.products"
                 update="fns.updateRow"
-                delete="fns.deleteRow"
-                pager="bottom-left"
+                destroy="fns.deleteRow"
+                paging="bottom-left"
                 search="top-left">
                 <gp-column field="ProductNumber" header="Product #"></gp-column>
                 <gp-column sort="StandardCost" header="Cost %">
@@ -35,10 +34,27 @@
                 </gp-column>
                 <gp-column field="StandardCost" header="Standard Cost" format="$0,0"></gp-column>
                 <gp-column field="SellStartDate" header="Sell Start Date" format="D MMMM, YYYY"></gp-column>
-                <gp-column commands="Edit,Delete"></gp-column>
+                <gp-column commands="edit,destroy"></gp-column>
             </grid-ponent>
         </div>
 
+        <div class="modal fade" role="dialog" aria-labelledby="modalHeader" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" jx-panel="modalHeader">
+                             Product Detail
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" data-dismiss="modal">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <script>
             var fns = fns || {};
@@ -60,7 +76,29 @@
 
             fns.filterByStockLevel = function (row, tr) {
                 this.search(row.SafetyStockLevel);
-            }
+            };
+
+            fns.showProduct = function (row) {
+                var props = Object.getOwnPropertyNames(row);
+
+                $('.modal-body').empty();
+
+                props.forEach(function (prop) {
+                    if (row[prop] != null) {
+                        $('.modal-body')
+                        .append('<tr>')
+                        .append('<th>' + gridponent.escapeHTML(prop) + '</th>')
+                        .append('<td>' + gridponent.escapeHTML(row[prop]) + '</td>')
+                        .append('</tr>');
+                    }
+                });
+
+                $('.modal').modal({
+                    show: true,
+                    keyboard: true
+                });
+
+            };
         </script>
 
     </div>

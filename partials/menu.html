@@ -2,17 +2,17 @@
     <div class="relative-container">
         <ul class="leftnav navbar-nav">
             <li>
-                <a href="#pages/home.php" class="active">
+                <a href="#pages/home" class="active">
                     <span class="glyphicon glyphicon-home"></span>Home
                 </a>
             </li>
             <li>
-                <a href="#pages/grid.php">
+                <a href="#pages/grid">
                     <span class="glyphicon glyphicon-list"></span>Demo
                 </a>
             </li>
             <li>
-                <a href="#pages/builder.php">
+                <a href="#pages/builder">
                     <span class="glyphicon glyphicon-wrench"></span>Builder
                 </a>
             </li>
@@ -48,14 +48,14 @@
             $('.nav-container').addClass('collapse');
         }, 500);
 
-        lojax.emptyHashAction = 'index.php';
+        lojax.emptyHashAction = 'index.html';
         lojax.config.transition = 'empty-append-children';
-
-        if (!lojax.priv.hasHash()) {
-            lojax.exec({
-                action: 'pages/home.php',
-                method: 'ajax-get'
-            });
+        lojax.config.setNavHistory(true);
+        lojax.beforeRequest(function (evt, request) {
+            request.action = request.action + '.html';
+        });
+        if (lojax.priv.hasHash()) {
+            setTimeout( lojax.Controller.handleHash );
         }
     });
 </script>

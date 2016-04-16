@@ -29,15 +29,14 @@
         </div>
     </div>
 
-    <?php include('partials/menu.php')?>
+    <div jx-src="partials/menu.html"></div>
 
-    <div class="container body-content" jx-panel="content-body">
-        <?php if(isset($TPL->ContentBody)) { echo $TPL->ContentBody; } ?>
-    </div>
+    <div class="container body-content" jx-panel="content-body"></div>
 
-    <footer class="footer" jx-panel="content-footer">
-        <?php if(isset($TPL->ContentFooter)) { echo $TPL->ContentFooter; } ?>
-        <?php include('partials/progress.html') ?>
+    <footer class="footer">
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+        </div>
     </footer>
 
     <div id="background"></div>
@@ -66,13 +65,19 @@
                     gridponent.initialize(context);
                 });
             }
+
+            if (lojax.priv.hasHash() == false) {
+                lojax.exec({
+                    action: 'pages/home.html',
+                    method: 'ajax-get'
+                });
+            }
         });
 
     </script>
 
     <script src="scripts/bootstrap.min.js"></script>
     <script src="data/products.js"></script>
-    <script src="scripts/json2xml.js"></script>
 
     <div style="display: none" jx-panel="scripts"></div>
 
