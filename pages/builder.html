@@ -99,8 +99,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label>
-                                        search-box
-                                        <select name="search-box" class="form-control">
+                                        search
+                                        <select name="search" class="form-control">
                                             <option value="">Select...</option>
                                             <option value="top-right">top-right</option>
                                             <option value="top-left">top-left</option>
@@ -180,6 +180,12 @@
                                 </div>
                                 <div class="form-group">
                                     <label>
+                                        beforeedit
+                                        <input type="text" name="beforeedit" class="form-control" />
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
                                         onread
                                         <input type="text" name="onread" class="form-control">
                                     </label>
@@ -188,6 +194,12 @@
                                     <label>
                                         onedit
                                         <input type="text" name="onedit" class="form-control" />
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        editready
+                                        <input type="text" name="editready" class="form-control" />
                                     </label>
                                 </div>
                                 <div class="form-group">
@@ -316,7 +328,7 @@
                                 update="fns.update"
                                 destroy="fns.destroy"
                                 model="data.model"
-                                edit-mode="modal">
+                                edit-mode="inline">
                                 <gp-column field="field"></gp-column>
                                 <gp-column field="sort"></gp-column>
                                 <gp-column field="header"></gp-column>

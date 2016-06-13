@@ -8,34 +8,42 @@
 
     <div class="panel-background">
 
-        <p>This is a grid that uses the <a href="http://webcomponents.org/" target="_blank">web components</a> API.
-            I built it because I needed a configurable grid that is compatible with IE9. 
-            It uses the web components API if present, and falls back to querying the DOM on page load if not.
-            What about AJAX in browsers without web component support? I'm using an AJAX library called lojax which provides an event that is triggered when  
-            content is loaded into the page dynamically. I simply handle this event and query the new content for grid-ponent elements.
+        <p>
+            A <a href="http://getbootstrap.com/" target="_blank">Bootstrap</a> table component.
         </p>
 
         <p>It has these features:</p>
 
         <ul>
-            <li>Client side sorting, paging, and searching</li>
+            <li>Bootstrap-ready</li>
+            <li>Client side sorting, paging and searching</li>
             <li>Server side sorting, paging and searching</li>
-            <li>In-place editing</li>
-            <li>Templating for the toolbar, header cells, body cells, edit cells, and footer cells.</li>
-            <li>Formatting for dates and times via <a href="http://momentjs.com/" target="_blank">moment.js</a></li>
-            <li>Formatting for numbers via <a href="http://numeraljs.com/" target="_blank">numeral.js</a></li>
+            <li>Inline editing</li>
+            <li>Modal editing</li>
+            <li>Column templating</li>
+            <li>Toolbar templating</li>
+            <li>Cell value formatting using <a href="http://momentjs.com/">moment.js</a> and <a href="http://numeraljs.com/">numeral.js</a></li>
+            <li>Specify custom CSS classes for header, body and footer</li>
             <li>Fixed headers</li>
             <li>Fixed footers</li>
             <li>Responsive</li>
             <li>Configurable search and pager positions</li>
             <li>Row selection</li>
             <li>An extensible JavaScript API</li>
-            <li><a href="http://getbootstrap.com/" target="_blank">Bootstrap</a>-ready</li>
+            <li>Create grid instances via custom HTML markup or JavaScript</li>
+            <li><a href="http://webcomponents.org/">Web component</a> support*</li>
         </ul>
 
-        <p>grid-ponent has no dependencies.</p>
+        <p>Dependencies:</p>
 
-        <h4><a href="#pages/grid.php">Click here</a> to see what it can do.</h4>
+        <ul>
+            <li>jQuery >= 2.1.4</li>
+            <li>Bootstrap >= 3.0.0</li>
+            <li>momentjs >= 2.12.0</li>
+            <li>numeraljs >= 1.4.5</li>
+        </ul>
+
+        <h4><a href="#pages/grid" jx-method="ajax-get"">Click here</a> to see what it can do.</h4>
 
     </div>
 </div>

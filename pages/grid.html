@@ -16,7 +16,8 @@
                 read="data.products"
                 update="fns.updateRow"
                 destroy="fns.deleteRow"
-                paging="bottom-left"
+                pager="bottom-left"
+                         editmode="modal"
                 search="top-left">
                 <gp-column field="ProductNumber" header="Product #"></gp-column>
                 <gp-column sort="StandardCost" header="Cost %">
@@ -34,7 +35,7 @@
                 </gp-column>
                 <gp-column field="StandardCost" header="Standard Cost" format="$0,0"></gp-column>
                 <gp-column field="SellStartDate" header="Sell Start Date" format="D MMMM, YYYY"></gp-column>
-                <gp-column commands="edit,destroy"></gp-column>
+                <gp-column commands="Edit,Delete"></gp-column>
             </grid-ponent>
         </div>
 
@@ -78,8 +79,8 @@
                 this.search(row.SafetyStockLevel);
             };
 
-            fns.showProduct = function (row) {
-                var props = Object.getOwnPropertyNames(row);
+            fns.showProduct = function (model) {
+                var props = Object.getOwnPropertyNames(model.dataItem);
 
                 $('.modal-body').empty();
 
