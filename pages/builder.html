@@ -316,6 +316,7 @@
                         <div class="panel-heading">Columns</div>
                         <div class="panel-body">
                             <grid-ponent 
+                                id="columnsGrid"
                                 responsive="true"
                                 read="data.options.columns"
                                 create="fns.create"
@@ -349,10 +350,10 @@
                                         <div>{{footer-template}}</div>
                                     </script>
                                     <script type="text/html" data-template="edit">
-                                        <input type="text" name="header-template" value="{{header-template}}" class="form-control" placeholder="header">
-                                        <input type="text" name="body-template" value="{{body-template}}" class="form-control" placeholder="body">
-                                        <input type="text" name="edit-template" value="{{edit-template}}" class="form-control" placeholder="edit">
-                                        <input type="text" name="footer-template" value="{{footer-template}}" class="form-control" placeholder="footer">
+                                        <input type="text" name="header-template" value="{{header-template}}" class="form-control" placeholder="header" readonly>
+                                        <input type="text" name="body-template" value="{{body-template}}" class="form-control" placeholder="body" readonly>
+                                        <input type="text" name="edit-template" value="{{edit-template}}" class="form-control" placeholder="edit" readonly>
+                                        <input type="text" name="footer-template" value="{{footer-template}}" class="form-control" placeholder="footer" readonly>
                                     </script>
                                 </gp-column>
                                 <gp-column field="format"></gp-column>
@@ -360,6 +361,28 @@
                                 <gp-column field="commands"></gp-column>
                                 <gp-column commands="Edit,Delete"></gp-column>
                             </grid-ponent>
+                            <script>
+                                $( '#columnsGrid' ).on( 'click', 'input[readonly]', function () {
+                                    var input = this;
+                                    var uid = $( this ).closest( '[data-uid]' ).attr( 'data-uid' );
+                                    var dataItem = gridponent( '#columnsGrid' ).getData( uid );
+                                    var model = {
+                                        uid: uid,
+                                        title: this.name,
+                                        body: gridponent.supplant( '<textarea class="form-control" name={{name}}>{{value}}</textarea>', { value: this.value, name: this.name } )
+                                    };
+                                    var html = gridponent.templates['bootstrap-modal']( model );
+
+                                    var modal = $( html ).modal( {
+                                        show: true,
+                                        keyboard: true
+                                    } ).on( 'click', 'button[value=save]', function () {
+                                        modal.modal( 'hide' );
+                                        var val = $( this ).closest( '.modal' ).find( 'textarea' ).val();
+                                        input.value = val;
+                                    } );;
+                                } );
+                            </script>
                         </div>
                     </div>
 

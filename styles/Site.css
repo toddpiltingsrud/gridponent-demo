@@ -68,7 +68,7 @@ th {
 
 .panel-background {
     background:white;
-    box-shadow: 0 0 8px 4px #111;
+    box-shadow: 0 0 8px 4px rgba(1, 1, 1, 0.7);
     padding: 20px;
 }
 
@@ -443,7 +443,7 @@ ul.leftnav ul > li a:focus {
     margin-bottom: 20px;
 }
 
-textarea {
+textarea, textarea.form-control {
     width: 100%;
     min-width: 100%;
     min-height: 100%;

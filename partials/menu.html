@@ -46,13 +46,15 @@
 
         setTimeout(function () {
             $('.nav-container').addClass('collapse');
-        }, 500);
+        }, 500 );
+
+        var now = $.now();
 
         lojax.emptyHashAction = 'index.html';
         lojax.config.transition = 'empty-append-children';
         lojax.config.setNavHistory(true);
         lojax.beforeRequest(function (evt, request) {
-            request.action = request.action + '.html';
+            request.action = request.action + '.html?_=' + now++;
         });
         if (lojax.priv.hasHash()) {
             setTimeout( lojax.Controller.handleHash );
