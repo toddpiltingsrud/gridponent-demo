@@ -1,0 +1,44 @@
+<div jx-panel="content-body">
+
+    <h3>
+        <code>
+            &lt;/api&gt;
+        </code>
+    </h3>
+
+    <div class="panel-background">
+
+        <h4>Events</h4>
+
+        <p>
+            These are not strictly events, they're delegates. Each event can have multiple delegates.
+            By not using events, we can simplify the function signature of the delegate.
+            To handle one of these, call the corresponding event with a function:
+            <br />
+            gridponent('#grid1').beforeInit(function(model){ ... });
+        </p>
+
+        <ul>
+            <li>beforeInit - Called once before the grid is completely initialized.</li>
+            <li>ready - Called after a grid is comletely initialized.</li>
+            <li>rowSelected - Called when a table row is clicked.</li>
+            <li>beforeRead - Called before every read operation from the data layer.</li>
+            <li>onRead - Called after a read operation completes.</li>
+            <li>beforeEdit - When an edit operation is about to begin, this is called before showing the edit UI interface.</li>
+            <li>editReady - Called after the edit interface is disaplayed.</li>
+            <li>onEdit - Called after an edit operation completes regardless of whether it succeeded.</li>
+            <li>httpError - Called whenever an http error occurs.</li>
+        </ul>
+
+        <p>
+            
+        </p>
+
+        <p>
+
+        </p>
+
+
+    </div>
+</div>
+
