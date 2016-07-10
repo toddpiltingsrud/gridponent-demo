@@ -1,0 +1,96 @@
+<div jx-panel="content-body">
+
+    <style>
+        h4 {
+            margin:20px 0;
+        }
+    </style>
+
+    <h3>
+        <code>
+            &lt;/templates&gt;
+        </code>
+    </h3>
+
+    <div class="panel-background">
+
+        <h4>The Basics</h4>
+
+        <p>
+            Templates can be used in many of gridponent's configuration options.
+            A template can be either a function or a string with substitution tokens in it.
+        </p>
+
+        <p>Here's an example of a template for the "read" configuration option:</p>
+
+        <code>
+            read="customers/detail/{{fns.getCustomerID}}"
+        </code>
+
+        <p>
+            In this example we've secified a function called "getCustomerID" that's inside the "fns" global object.
+            gridponent tests each token it finds in a template to see if it points to a function.
+            If so, it executes the function and replaces the token with the result.
+        </p>
+
+        <p>Here's another example of a template for the body cells of a table:</p>
+
+        <pre>
+&lt;gp-column sort="LastName"&gt;
+    &lt;template data-template="body"&gt;
+        {{FirstName}} {{LastName}}
+    &lt;/template&gt;
+&lt;/gp-column&gt;</pre>
+
+        <p>
+            As it iterates through the rows, gridponent substitues the tokens in the template with properties from the current data object.
+            <br />
+            Note that we've used the "template" element here. This element is not yet widely supported, so gridponent also supports the following technique:
+        </p>
+
+        <pre>
+&lt;gp-column sort="LastName"&gt;
+    &lt;style type="text/html" data-template="body"&gt;
+        {{FirstName}} {{LastName}}
+    &lt;/style&gt;
+&lt;/gp-column&gt;</pre>
+
+        <p>And here's the equivalent JSON version (which I prefer):</p>
+
+        <pre>
+columns: [
+    { 
+        sort: 'LastName', 
+        bodytemplate:'{{FirstName}} {{LastName}}' 
+    }
+]
+</pre>
+
+        <h4>Escaping HTML</h4>
+
+        <p>
+            gridponent escapes content inside double braces automatically.
+            If you need to insert HTML markup, use triple braces.
+            <br />
+            Let's assume you're generating HTML compositionally. You might have a function that returns some HTML:
+        </p>
+
+        <pre>
+var getEditButton = function( dataItem ) {
+    return dataItem.CanEdit ? '&lt;button type="button" value="edit">Edit&lt;/button>' : '';
+};
+</pre>
+
+        <p>You'd reference this function in a template like so:</p>
+
+        <pre>
+columns: [
+    { 
+        bodytemplate:'&lt;div class="btn-group">{{{getEditButton}}}&lt;/div>'
+    }
+]
+</pre>
+
+    </div>
+</div>
+

@@ -1,0 +1,210 @@
+<div jx-panel="content-body">
+
+    <h3>
+        <code>
+            &lt;/config-options&gt;
+        </code>
+    </h3>
+
+    <div class="panel-background">
+
+        <h3>Data Access</h3>
+
+        <div class="option">
+            <h4><code>read</code></h4>
+            <p>
+                A URL template or function.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>create</code></h4>
+            <p>
+                A URL template or function.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>update</code></h4>
+            <p>
+                A URL template or function.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>destroy</code></h4>
+            <p>
+                A URL template or function.
+                Note: gridponent issues an http delete here.
+                Delete requests don't contain a body.
+                So the URL must uniquely identify the resource.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>model</code></h4>
+
+            <p>
+                An object or object path. Used to establish defaults for new data items.
+                The model object can use functions for the model properties.
+            </p>
+        </div>
+        <h3>Layout</h3>
+
+        <div class="option">
+            <h4><code>fixedheaders</code></h4>
+            <p>
+                A boolean flag. If true, gridponent creates a scrollable region for the table body.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>fixedfooters</code></h4>
+            <p>
+                A boolean flag. If true, gridponent creates a scrollable region for the table body.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>responsive</code></h4>
+            <p>
+                A boolean flag. If true, gridponent adds the "table-responsive" class to the parent div of the table.
+                Bootstrap does the rest.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>sorting</code></h4>
+            <p>
+                Either a boolean value or one of the following:
+            </p>
+            <ul>
+                <li>top-left</li>
+                <li>top-right</li>
+                <li>bottom-left</li>
+                <li>bottom-right</li>
+            </ul>
+        </div>
+        <div class="option">
+            <h4><code>search</code></h4>
+            <p>
+                A boolean value. If true, gridponent adds a search box to the toolbar.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>pager</code></h4>
+            <p>
+                Either a boolean value or one of the following:
+            </p>
+            <ul>
+                <li>top-left</li>
+                <li>top-right</li>
+                <li>bottom-left</li>
+                <li>bottom-right</li>
+            </ul>
+        </div>
+        <div class="option">
+            <h4><code>toobartemplate</code></h4>
+            <p>
+                Either a function that returns HTML or a template. If specified, it replaces the default toolbar.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>editmode</code></h4>
+            <ul>
+                <li>inline (default)</li>
+                <li>modal</li>
+            </ul>
+        </div>
+        <h3>Columns</h3>
+
+        <div class="option">
+            <h4><code>field</code></h4>
+            <p>
+                The name of the field to bind to.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>sort</code></h4>
+            <p>
+                The name of the field by which to sort the column.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>header</code></h4>
+            <p>
+                The column header/title.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>headerclass</code></h4>
+            <p>
+                Specify a class name to apply custom styles to the header cell.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>bodyclass</code></h4>
+            <p>
+                Specify a class name to apply custom styles to the body cell.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>editclass</code></h4>
+            <p>
+                Specify a class name to apply custom styles to the body cell in edit mode.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>footerclass</code></h4>
+            <p>
+                Specify a class name to apply custom styles to the footer cell.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>width</code></h4>
+            <p>
+                The width of the column. If only a number is specified, pixels are assumed (e.g. "150" == "150px").
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>headertemplate</code></h4>
+            <p>
+                A template or a function that returns HTML.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>bodytemplate</code></h4>
+            <p>
+                A template or a function that returns HTML.
+                If a function is used, gridponent passes the current data object as an argument.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>edittemplate</code></h4>
+            <p>
+                A template or a function that returns HTML.
+                If a function is used, gridponent passes the current data object as an argument.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>footertemplate</code></h4>
+            <p>
+                A template or a function that returns HTML.
+                If a function is used, gridponent passes the data array as an argument.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>format</code></h4>
+            <p>
+                Either a numeric format or datetime format.
+                gridponent uses numeral.js for number data types and moment.js for Date data types.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>readonly</code></h4>
+            <p>
+                A boolean value.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>commands</code></h4>
+            <p>
+
+            </p>
+        </div>
+    </div>
+</div>
+

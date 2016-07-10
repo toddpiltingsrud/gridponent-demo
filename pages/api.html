@@ -8,19 +8,24 @@
 
     <div class="panel-background">
 
-        <h4>Events</h4>
+        <h3>Events</h3>
 
         <p>
             These are not strictly events, they're delegates. Each event can have multiple delegates.
             By not using events, we can simplify the function signature of the delegate.
+        </p>
+
+        <p>
             To handle one of these, call the corresponding event with a function:
-            <br />
+        </p>
+
+        <p>
             gridponent('#grid1').beforeInit(function(model){ ... });
         </p>
 
         <ul>
             <li>beforeInit - Called once before the grid is completely initialized.</li>
-            <li>ready - Called after a grid is comletely initialized.</li>
+            <li>ready - Called after a grid is completely initialized.</li>
             <li>rowSelected - Called when a table row is clicked.</li>
             <li>beforeRead - Called before every read operation from the data layer.</li>
             <li>onRead - Called after a read operation completes.</li>
@@ -30,15 +35,94 @@
             <li>httpError - Called whenever an http error occurs.</li>
         </ul>
 
-        <p>
-            
-        </p>
-
-        <p>
-
-        </p>
+        <h3>Functions</h3>
 
 
+        <div class="option">
+            <h4><code>create(dataItem)</code></h4>
+            <p>
+                Use this function to create a new record.
+                gridponent will open the record for editing using the specified edit mode.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>destroy(dataItem, callback)</code></h4>
+
+            <p>
+                Runs the item through the data layer to delete it.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>dispose()</code></h4>
+
+            <p>
+                Removes all event handlers.
+                This is called by the detachedCallback web component API delegate.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>find( selector )</code></h4>
+
+            <p>
+                Executes jQuery's find function against the top node of the grid.
+            </p>
+        </div>
+
+        <div class="option">
+            <h4><code>getData( uidOrTableRow )</code></h4>
+
+            <p>
+                Returns the data row for the specified UID or table row element.
+                If no argument is supplied, returns the entire data array.
+            </p>
+        </div>
+
+
+        <div class="option">
+            <h4><code>getTableRow( dataItem )</code></h4>
+
+            <p>
+                Return the table row element that is bound to the data item.
+
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>read( requestModel, callback )</code></h4>
+
+            <p>
+                Executes the configured read action.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>refresh( callback )</code></h4>
+
+            <p>
+                Executes the configured read action using the current request model.
+            </p>
+        </div>
+
+        <div class="option">
+            <h4><code>search( searchTerm, callback )</code></h4>
+
+            <p>
+                Filters the rows displayed in the grid using a basic string comparison algorithm.
+            </p>
+        </div>
+        <div class="option">
+            <h4><code>sort( fieldName, desc, callback )</code></h4>
+
+            <p>
+                Sorts the grid by the specified field name in the order specified by the boolean desc flag.
+            </p>
+        </div>
+
+        <div class="option">
+            <h4><code>toogleBusy( isBusy )</code></h4>
+
+            <p>
+                Turns the grid's progress indicator on or off according to the specified boolean argument.
+            </p>
+        </div>
     </div>
 </div>
 

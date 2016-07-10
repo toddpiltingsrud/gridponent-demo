@@ -255,7 +255,6 @@ ul.leftnav > li > a > span.glyphicon {
   display: block;
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 3px;
   border: solid 1px transparent;
   background-color: transparent;
   border-radius: 13px;
@@ -458,4 +457,13 @@ h3 > code {
     background-color: transparent;
     text-shadow: 0 0 10px #000;
     display: block;
+}
+
+div.option {
+    margin:25px 20px;
+}
+
+div.option code {
+    background:none;
+    padding:0;
 }
