@@ -202,8 +202,30 @@
         <div class="option">
             <h4><code>commands</code></h4>
             <p>
-
+                Row-level commands can be created in two ways: 
+                <ol>
+                    <li>A simple comma-separated string: <code>{ commands: 'Edit,Delete' }</code></li>
+                    <li>An array of objects: 
+                    <pre>
+{ commands: [
+    {text: 'Edit', value:'edit'}, 
+    {text: 'Delete', value:'delete'},
+    {text: 'Custom', func:function( dataItem ) { // do something to the row&apos;s data object }, glyphicon: 'glyphicon-asterisk'}
+] }
+</pre>
+                    </li>
+                </ol>
             </p>
+            <p>
+                Command objects can have the following properties:
+            </p>
+            <ul>
+                <li>text: The text displayed to the user.</li>
+                <li>value: The name of the command. Predefined values that are automatically handled by gridponent include 'edit' and 'delete'.</li>
+                <li>btnClass: The name of a CSS class to add to the button element.</li>
+                <li>glyphicon: One of the Bootstrap glyphicon classes for adding an icon to the left of the button text.</li>
+                <li>func: A function for a custom command. If the 'value' property is a string representing a function path, gridponent resolves it and sets the 'func' property to the resolved function.</li>
+            </ul>
         </div>
     </div>
 </div>
