@@ -1,5 +1,6 @@
 composer update
 git add .
 git commit -m "gridponent-demo"
+esc :x 
 git push heroku master
 heroku open
