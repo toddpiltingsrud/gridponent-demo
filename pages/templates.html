@@ -2,7 +2,7 @@
 
     <style>
         h4 {
-            margin:20px 0;
+            margin: 20px 0;
         }
     </style>
 
@@ -90,6 +90,109 @@ columns: [
     }
 ]
 </pre>
+
+
+        <h4>Overriding Base Templates</h4>
+
+        <p>
+            All of gridponent's base templates can be overridden with custom templates.
+        </p>
+
+        <p>
+            Here's a list of all the base templates:
+        </p>
+
+        <ul>
+            <li>bodyCellContent</li>
+            <li>bootstrapModal</li>
+            <li>bootstrapModalContent</li>
+            <li>columnWidthStyle</li>
+            <li>container</li>
+            <li>containerClasses</li>
+            <li>editCellContent</li>
+            <li>footer</li>
+            <li>footerCell</li>
+            <li>footerCellContent</li>
+            <li>footerTable</li>
+            <li>formGroup</li>
+            <li>header</li>
+            <li>headerCell</li>
+            <li>headerCellContent</li>
+            <li>input</li>
+            <li>pagerBar</li>
+            <li>tableBody</li>
+            <li>tableRow</li>
+            <li>tableRowCell</li>
+            <li>tableRowCells</li>
+            <li>tableRows</li>
+            <li>toolbartemplate</li>
+        </ul>
+
+        <p>
+            Gridponent uses a dependency injection mechanism to supply each template with whatever it needs to do its job.
+            Instead of calling a template directly, the injector's <code>exec</code> function is called, supplying the name of the template and an optional model argument.
+        </p>
+
+        <p>Here's a list of available resources:</p>
+
+        <ul>
+            <li>$config - the main object used to configure the grid</li>
+            <li>$column - the current column</li>
+            <li>$columns - the collection of columns (from the $config object)</li>
+            <li>$data - the data the grid is bound to</li>
+            <li>$dataItem - the current data item for the row being rendered</li>
+            <li>$injector - the injector itself</li>
+            <li>$map - a dictionary used to map table rows to data items</li>
+            <li>$node - the top container element</li>
+            <li>$pageModel - object containing the current paging and sorting options</li>
+        </ul>
+
+        <p>
+            Additionally, templates are called with the grid's API as their context.
+            So there's an abundance of resources at your disposal when building your own custom templates.
+        </p>
+        <p>
+            To override a base template, add a function with the same name as the base template to your main configuration object.
+        </p>
+        <p>
+            Here's an example that adds a colspan attribute to one of the columns.
+        </p>
+
+        <pre>
+gridponent('#grid1', {
+    read:'products',
+    fixedheaders:true,
+    responsive:true,
+    tableRowCell: function ( $column, $injector ) {
+        
+        if ($column.field === 'Description') {
+            // add a colspan attribute to the Description column      
+            
+            var html = new gridponent.StringBuilder();
+            
+            html.add( '&lt;td class="body-cell" colspan="2"&gt;' )
+                // the exec function looks for an override first before executing the base template
+                .add( $injector.exec( 'bodyCellContent' ) )
+                .add( '&lt;/td&gt;' );
+            
+            return html.toString();
+        }
+        else {
+            // call the base template for the other columns
+            // you must use the "base" function here or the injector will call your override again
+            return $injector.base( 'tableRowCell' );
+        }  
+    
+    },
+    columns: [ ... ]
+});
+</pre>
+
+        <p>
+            Note the function parameters.
+            These must match the names of the resources in the list above.
+            As long as your script is not minified, the injector will be able to read the function parameters and pass in the proper resources.
+        </p>
 
     </div>
 </div>
