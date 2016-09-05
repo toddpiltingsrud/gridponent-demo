@@ -126,14 +126,6 @@ var gridponent = gridponent || function ( elem, options ) {
             return this.$n.find( selector ).addBack( selector );
         },
 
-        getCommandIndex: function ( value ) {
-            for ( var i = 0; i < this.config.commands.length; i++ ) {
-                if ( this.config.commands[i].value === value ) {
-                    return i;
-                }
-            }
-        },
-
         getData: function ( uidOrTableRow ) {
             if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
             return this.controller.config.pageModel.data;
@@ -157,6 +149,11 @@ var gridponent = gridponent || function ( elem, options ) {
             return this;
         },
 
+        saveChanges: function ( dataItem, done ) {
+            this.controller.updateRow( dataItem, done );
+            return this;
+        },
+
         search: function ( searchTerm, callback ) {
             // make sure we pass in a string
             searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -177,10 +174,10 @@ var gridponent = gridponent || function ( elem, options ) {
             isBusy = ( isBusy === true || isBusy === false ? isBusy : !gp.hasClass( this.config.node, 'busy' ) );
 
             if ( isBusy ) {
-                gp.addClass( this.config.node, 'busy' );
+                this.$n.addClass( 'busy' );
             }
             else {
-                gp.removeClass( this.config.node, 'busy' );
+                this.$n.removeClass( 'busy' );
             }
 
             return this;
@@ -214,11 +211,12 @@ var gridponent = gridponent || function ( elem, options ) {
     /***************\
        controller
     \***************/
-    gp.Controller = function ( config, model, requestModel ) {
+    gp.Controller = function ( config, model, requestModel, injector ) {
         this.config = config;
         this.model = model;
         this.$n = $( config.node );
         this.requestModel = requestModel;
+        this.injector = injector;
         if ( config.pager ) {
             this.requestModel.top = 25;
         }
@@ -337,7 +335,7 @@ var gridponent = gridponent || function ( elem, options ) {
         commandHandler: function ( evt ) {
             // this function handles all the button clicks for the entire grid
             var lower,
-                $btn = $( evt.target ),
+                $btn = $( evt.currentTarget ),
                 rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
                 dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
                 value = $btn.attr( 'value' ),
@@ -399,13 +397,13 @@ var gridponent = gridponent || function ( elem, options ) {
             var self = this, editor;
 
             if ( mode == undefined ) {
-                editor = new gp.Editor( this.config, this.model );
+                editor = new gp.Editor( this.config, this.model, this.injector );
             }
             else if ( mode == 'modal' ) {
-                editor = new gp.ModalEditor( this.config, this.model );
+                editor = new gp.ModalEditor( this.config, this.model, this.injector );
             }
             else {
-                editor = new gp.TableRowEditor( this.config, this.model );
+                editor = new gp.TableRowEditor( this.config, this.model, this.injector );
             }
 
             editor.beforeEdit = function ( model ) {
@@ -493,6 +491,7 @@ var gridponent = gridponent || function ( elem, options ) {
                 try {
                     // standardize capitalization of incoming data
                     gp.shallowCopy( model, self.config.pageModel, true );
+                    self.injector.setResource( '$data', self.config.pageModel.data );
                     self.config.map.clear();
                     gp.resolveTypes( self.config );
                     self.refresh( self.config );
@@ -521,6 +520,28 @@ var gridponent = gridponent || function ( elem, options ) {
             var model = editor.edit( dataItem, elem );
 
             return editor;
+        },
+
+        updateRow: function ( dataItem, callback ) {
+
+            try {
+                var self = this,
+                    editor = this.getEditor();
+
+                // if there is no update configuration setting, we're done here
+                if ( !gp.hasValue( this.config.update ) ) {
+                    gp.applyFunc( callback, self.config.node );
+                    return;
+                }
+
+                editor.edit( dataItem );
+
+                editor.save( callback, this.httpErrorHandler.bind( this ) );
+            }
+            catch ( e ) {
+                this.removeBusy();
+                this.httpErrorHandler( e );
+            }
         },
 
         // we don't require a tr parameter because it may not be in the grid
@@ -589,9 +610,10 @@ var gridponent = gridponent || function ( elem, options ) {
 
                 this.config.map.clear();
 
-                body.html( gp.templates['gridponent-body']( this.config ) );
-                footer.html( gp.templates['gridponent-table-footer']( this.config ) );
-                pager.html( gp.templates['gridponent-pager']( this.config ) );
+                body.html( this.injector.exec( 'tableBody' ) );
+                // if we're not using fixed footers this will have no effect
+                footer.html( this.injector.exec( 'footerTable' ) );
+                pager.html( this.injector.exec( 'pagerBar' ) );
 
                 gp.helpers.sortStyle( this.config );
             }
@@ -777,16 +799,13 @@ var gridponent = gridponent || function ( elem, options ) {
         },
 
         resolveUid: function ( uidOrElem ) {
-
             var uid = -1;
 
-            if ( uidOrElem.attributes ) {
-                if ( uidOrElem.attributes['data-uid'] && uidOrElem.attributes['data-uid'].value ) {
-                    uid = parseInt( uidOrElem.attributes['data-uid'].value );
-                }
-            }
-            else {
+            if ( $.isNumeric( uidOrElem ) ) {
                 uid = parseInt( uidOrElem );
+            }
+            else if ( $( uidOrElem ).is( '[data-uid]' ) ) {
+                uid = parseInt( $( uidOrElem ).attr( 'data-uid' ) );
             }
 
             if ( isNaN( uid ) ) return -1;
@@ -812,7 +831,7 @@ var gridponent = gridponent || function ( elem, options ) {
          Editor
     \***************/
 
-    gp.Editor = function ( config, dal ) {
+    gp.Editor = function ( config, dal, injector ) {
 
         this.config = config;
         this.dal = dal;
@@ -825,6 +844,7 @@ var gridponent = gridponent || function ( elem, options ) {
         this.editReady = null;
         this.button = null;
         this.$n = $( config.node );
+        this.injector = injector;
 
     };
 
@@ -832,6 +852,9 @@ var gridponent = gridponent || function ( elem, options ) {
 
         add: function ( dataItem ) {
             this.dataItem = dataItem || this.createDataItem();
+            this.injector
+                .setResource( '$dataItem', this.dataItem )
+                .setResource( '$mode', 'create' );
             this.mode = 'create';
 
             // add the data item to the internal data array
@@ -848,6 +871,8 @@ var gridponent = gridponent || function ( elem, options ) {
 
         edit: function ( dataItem ) {
             this.dataItem = dataItem;
+            this.injector.setResource( '$dataItem', dataItem )
+                .setResource( '$mode', 'update' );
             this.originalDataItem = gp.shallowCopy( dataItem );
             this.mode = 'update';
             return {
@@ -1063,11 +1088,11 @@ var gridponent = gridponent || function ( elem, options ) {
      TableRowEditor
     \***************/
 
-    gp.TableRowEditor = function ( config, dal ) {
+    gp.TableRowEditor = function ( config, dal, injector ) {
 
         var self = this;
 
-        gp.Editor.call( this, config, dal );
+        gp.Editor.call( this, config, dal, injector );
 
         this.elem = null;
         this.commandHandler = function ( evt ) {
@@ -1108,8 +1133,6 @@ var gridponent = gridponent || function ( elem, options ) {
         add: function ( dataItem ) {
             var self = this,
                 tbody = this.$n.find( 'div.table-body > table > tbody' ),
-                bodyCellContent = gp.helpers['bodyCellContent'],
-                editCellContent = gp.helpers['editCellContent'],
                 builder = new gp.NodeBuilder(),
                 cellContent;
 
@@ -1119,9 +1142,12 @@ var gridponent = gridponent || function ( elem, options ) {
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
+                self.injector
+                    .setResource( '$column', col )
+                    .setResource( '$mode', 'create' );
                 cellContent = col.readonly ?
-                    bodyCellContent.call( self.config, col, self.dataItem ) :
-                    editCellContent.call( self.config, col, self.dataItem, 'create' );
+                    self.injector.exec( 'bodyCellContent' ) :
+                    self.injector.exec( 'editCellContent' );
                 builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent );
                 if ( col.commands ) {
                     builder.addClass( 'commands' );
@@ -1138,7 +1164,12 @@ var gridponent = gridponent || function ( elem, options ) {
 
             this.addCommandHandler();
 
-            tbody.prepend( this.elem );
+            if ( this.config.newrowposition === 'top' ) {
+                tbody.prepend( this.elem );
+            }
+            else {
+                tbody.append( this.elem );
+            }
 
             this.invokeEditReady();
 
@@ -1154,7 +1185,6 @@ var gridponent = gridponent || function ( elem, options ) {
 
             var self = this,
                 col,
-                editCellContent = gp.helpers['editCellContent'],
                 cells = $( tr ).find( 'td.body-cell' ),
                 uid;
 
@@ -1168,8 +1198,11 @@ var gridponent = gridponent || function ( elem, options ) {
             // besides, that way we can just skip readonly cells
             cells.each( function ( i ) {
                 col = self.config.columns[i];
+                self.injector
+                    .setResource( '$column', col )
+                    .setResource( '$mode', 'edit' );
                 if ( !col.readonly ) {
-                    $( this ).html( editCellContent.call( self.config, col, dataItem, 'edit' ) );
+                    $( this ).html( self.injector.exec( ' editCellContent ' ) );
                     if ( col.editclass ) {
                         $( this ).addClass( col.editclass );
                     }
@@ -1250,12 +1283,12 @@ var gridponent = gridponent || function ( elem, options ) {
             // take the table row out of edit mode
             var self = this,
                 col,
-                bodyCellContent = gp.helpers['bodyCellContent'],
                 cells = $( this.elem ).find( 'td.body-cell' );
 
             cells.each( function ( i ) {
                 col = self.config.columns[i];
-                $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+                self.injector.setResource( '$column', col );
+                $( this ).html( self.injector.exec( 'bodyCellContent' ) );
                 if ( col.editclass ) {
                     $( this ).removeClass( col.editclass );
                 }
@@ -1279,9 +1312,9 @@ var gridponent = gridponent || function ( elem, options ) {
        ModalEditor
     \***************/
 
-    gp.ModalEditor = function ( config, dal ) {
+    gp.ModalEditor = function ( config, dal, injector ) {
 
-        gp.TableRowEditor.call( this, config, dal );
+        gp.TableRowEditor.call( this, config, dal, injector );
 
     };
 
@@ -1313,7 +1346,7 @@ var gridponent = gridponent || function ( elem, options ) {
             gp.Editor.prototype.add.call( this, dataItem );
 
             // mode: create or update
-            html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
+            html = this.injector.exec( 'bootstrapModalContent' );
 
             // append the modal to the top node so button clicks will be picked up by commandHandlder
             modal = $( html )
@@ -1350,7 +1383,7 @@ var gridponent = gridponent || function ( elem, options ) {
             gp.Editor.prototype.edit.call( this, dataItem );
 
             // mode: create or update
-            html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
+            html = this.injector.exec( 'bootstrapModalContent' );
 
             // append the modal to the top node so button clicks will be picked up by commandHandlder
             modal = $( html )
@@ -1391,7 +1424,6 @@ var gridponent = gridponent || function ( elem, options ) {
 
             var self = this,
                 tbody = this.$n.find( 'div.table-body > table > tbody' ),
-                bodyCellContent = gp.helpers['bodyCellContent'],
                 tableRow,
                 cells,
                 col,
@@ -1416,14 +1448,18 @@ var gridponent = gridponent || function ( elem, options ) {
 
                 // add td.body-cell elements to the tr
                 this.config.columns.forEach( function ( col ) {
-                    cellContent = bodyCellContent.call( self.config, col, self.dataItem );
+                    cellContent = self.injector.setResource( '$column', col ).exec( 'bodyCellContent' );
                     builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
                 } );
 
                 tableRow = builder.close();
 
-                $( tbody ).prepend( tableRow );
-
+                if ( this.config.newrowposition === 'top' ) {
+                    tbody.prepend( tableRow );
+                }
+                else {
+                    tbody.append( tableRow );
+                }
             }
             else {
                 tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
@@ -1431,7 +1467,8 @@ var gridponent = gridponent || function ( elem, options ) {
                 if ( tableRow ) {
                     $( tableRow ).find( 'td.body-cell' ).each( function ( i ) {
                         col = self.config.columns[i];
-                        $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+                        self.injector.setResource( '$column', col );
+                        $( this ).html( self.injector.exec( 'bodyCellContent' ) );
                     } );
                 }
             }
@@ -1479,239 +1516,6 @@ var gridponent = gridponent || function ( elem, options ) {
 
     gp.helpers = {
 
-        bootstrapModal: function ( config, dataItem, mode ) {
-
-            var model = {
-                title: ( mode == 'create' ? 'Add' : 'Edit' ),
-                body: '',
-                footer: null,
-                uid: config.map.getUid( dataItem )
-            };
-
-            var html = new gp.StringBuilder();
-
-            // not using a form element here because the modal is added as a child node of the grid component
-            // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
-            html.add( '<div class="form-horizontal">' );
-
-            config.columns.forEach( function ( col ) {
-                if ( col.commands ) {
-                    model.footer = gp.helpers.editCellContent.call( config, col, dataItem, mode );
-                    return;
-                }
-                var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
-                if ( !canEdit ) return;
-
-                var formGroupModel = {
-                    label: null,
-                    input: gp.helpers.editCellContent.call( config, col, dataItem, mode ),
-                    editclass: col.editclass
-                };
-
-                // headers become labels
-                // check for a template
-                if ( col.headertemplate ) {
-                    if ( typeof ( col.headertemplate ) === 'function' ) {
-                        formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
-                    }
-                    else {
-                        formGroupModel.label = ( gp.supplant.call( this, col.headertemplate, [col] ) );
-                    }
-                }
-                else {
-                    formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
-                }
-
-                html.add( gp.helpers.formGroup( formGroupModel ) );
-            } );
-
-            html.add( '</div>' );
-
-            model.body = html.toString();
-
-            return gp.templates['bootstrap-modal']( model );
-        },
-
-        bodyCellContent: function ( col, dataItem ) {
-            var self = this,
-                template,
-                format,
-                val,
-                glyphicon,
-                btnClass,
-                hasDeleteBtn = false,
-                dataItem = dataItem || this.Row,
-                type = ( col.Type || '' ).toLowerCase(),
-                html = new gp.StringBuilder();
-
-            if ( dataItem == null ) return;
-
-            val = gp.getFormattedValue( dataItem, col, true );
-
-            // check for a template
-            if ( col.bodytemplate ) {
-                if ( typeof ( col.bodytemplate ) === 'function' ) {
-                    html.add( gp.applyFunc( col.bodytemplate, this, [dataItem, col] ) );
-                }
-                else {
-                    html.add( gp.supplant.call( this, col.bodytemplate, dataItem, [dataItem, col] ) );
-                }
-            }
-            else if ( col.commands && col.commands.length ) {
-                html.add( '<div class="btn-group btn-group-xs" role="group">' );
-                col.commands.forEach( function ( cmd, index ) {
-                    html.add( gp.helpers.button( cmd ) );
-                } );
-                html.add( '</div>' );
-            }
-            else if ( gp.hasValue( val ) ) {
-                // show a checkmark for bools
-                if ( type === 'boolean' ) {
-                    if ( val === true ) {
-                        html.add( '<span class="glyphicon glyphicon-ok"></span>' );
-                    }
-                }
-                else {
-                    // getFormattedValue has already escaped html
-                    html.add( val );
-                }
-            }
-            return html.toString();
-        },
-
-        button: function ( model, arg ) {
-            var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
-            return gp.supplant( template, model );
-        },
-
-        columnWidthStyle: function () {
-            var self = this,
-                html = new gp.StringBuilder(),
-                index = 0,
-                bodyCols = document.querySelectorAll( '#' + this.ID + ' .table-body > table > tbody > tr:first-child > td' );
-
-            // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
-            this.columns.forEach( function ( col ) {
-                if ( col.width ) {
-                    // fixed width should include the body
-                    html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                        .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
-                        .add( ',' )
-                        .add( '#' + self.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
-                        .add( '#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
-                        .add( '{ width:' )
-                        .add( col.width );
-                    if ( isNaN( col.width ) == false ) html.add( 'px' );
-                    html.add( ';}' );
-                }
-                else if ( bodyCols.length && ( self.fixedheaders || self.fixedfooters ) ) {
-                    // sync header and footer to body
-                    width = bodyCols[index].offsetWidth;
-                    html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                        .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
-                        .add( '{ width:' )
-                        .add( bodyCols[index].offsetWidth )
-                        .add( 'px;}' );
-                }
-                index++;
-            } );
-
-            return html.toString();
-        },
-
-        containerClasses: function () {
-            var html = new gp.StringBuilder();
-            if ( this.fixedheaders ) {
-                html.add( ' fixed-headers' );
-            }
-            if ( this.fixedfooters ) {
-                html.add( ' fixed-footers' );
-            }
-            if ( this.pager ) {
-                html.add( ' pager-' + this.pager );
-            }
-            if ( this.responsive ) {
-                html.add( ' table-responsive' );
-            }
-            if ( this.search ) {
-                html.add( ' search-' + this.search );
-            }
-            if ( this.rowselected ) {
-                html.add( ' selectable' );
-            }
-            return html.toString();
-        },
-
-        editCellContent: function ( col, dataItem, mode ) {
-            var template, html = new gp.StringBuilder();
-
-            // check for a template
-            if ( col.edittemplate ) {
-                if ( typeof ( col.edittemplate ) === 'function' ) {
-                    html.add( gp.applyFunc( col.edittemplate, this, [dataItem, col] ) );
-                }
-                else {
-                    html.add( gp.supplant.call( this, col.edittemplate, dataItem, [dataItem, col] ) );
-                }
-            }
-            else if ( col.commands ) {
-                html.add( '<div class="btn-group' )
-                    .add( this.editmode == 'inline' ? ' btn-group-xs' : '' )
-                    .add( '">' )
-                    .add( gp.helpers.button( {
-                        btnClass: 'btn-primary',
-                        value: ( mode == 'create' ? 'create' : 'update' ),
-                        glyphicon: 'glyphicon-save',
-                        text: 'Save'
-                    } ) )
-                    .add( '<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">' )
-                    .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
-                    .add( '</button>' )
-                    .add( '</div>' );
-            }
-            else {
-                var val = dataItem[col.field];
-                // render undefined/null as empty string
-                if ( !gp.hasValue( val ) ) val = '';
-                html.add( gp.helpers.input( col.Type, col.field, "" ) );
-            }
-            return html.toString();
-        },
-
-        footerCell: function ( col ) {
-            var html = new gp.StringBuilder();
-            if ( col.footertemplate ) {
-                if ( typeof ( col.footertemplate ) === 'function' ) {
-                    html.add( gp.applyFunc( col.footertemplate, this, [col, this.pageModel.data] ) );
-                }
-                else {
-                    html.add( gp.supplant.call( this, col.footertemplate, col, [col, this.pageModel.data] ) );
-                }
-            }
-            return html.toString();
-        },
-
-        formGroup: function ( model ) {
-            var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
-            return gp.supplant( template, model );
-        },
-
-        input: function ( type, name, value ) {
-            var obj = {
-                type: ( type == 'boolean' ? 'checkbox' : ( type == 'number' ? 'number' : 'text' ) ),
-                name: name,
-                value: ( type == 'boolean' ? 'true' : ( type == 'date' ? gp.formatter.format( value, 'YYYY-MM-DD' ) : gp.escapeHTML( value ) ) ),
-                checked: ( type == 'boolean' && value ? ' checked' : '' ),
-                // Don't bother with the date input type.
-                // Indicate the type using data-type attribute so a custom date picker can be used.
-                // This sidesteps the problem of polyfilling browsers that don't support the date input type
-                // and provides a more consistent experience across browsers.
-                dataType: ( /^date/.test( type ) ? ' data-type="date"' : '' )
-            };
-
-            return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
-        },
-
         setPagerFlags: function () {
             this.pageModel.IsFirstPage = this.pageModel.page === 1;
             this.pageModel.IsLastPage = this.pageModel.page === this.pageModel.pagecount;
@@ -1730,103 +1534,6 @@ var gridponent = gridponent || function ( elem, options ) {
                     .find( 'a.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
                     .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
             }
-        },
-
-        tableRows: function () {
-            var self = this,
-                html = new gp.StringBuilder(),
-                map = this.map,
-                uid;
-            if ( !map ) {
-                map = this.map = new gp.DataMap();
-            }
-            this.pageModel.data.forEach( function ( dataItem, index ) {
-                uid = map.assign( dataItem );
-                self.Row = dataItem;
-                html.add( '<tr data-uid="' )
-                .add( uid )
-                .add( '">' )
-                .add( gp.templates['gridponent-cells']( self ) )
-                .add( '</tr>' );
-            } );
-            return html.toString();
-        },
-
-        thead: function () {
-            var self = this,
-                html = new gp.StringBuilder(),
-                sort, template, classes;
-            html.add( '<thead>' );
-            html.add( '<tr>' );
-            this.columns.forEach( function ( col ) {
-                sort = '';
-                if ( self.sorting ) {
-                    // if sort isn't specified, use the field
-                    sort = gp.escapeHTML( gp.coalesce( [col.sort, col.field] ) );
-                }
-                else {
-                    // only provide sorting where it is explicitly specified
-                    if ( gp.hasValue( col.sort ) ) {
-                        sort = gp.escapeHTML( col.sort );
-                    }
-                }
-
-                html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '"' );
-
-                if ( gp.hasValue( sort ) ) {
-                    html.add( ' data-sort="' + sort + '"' );
-                }
-
-                html.add( '>' );
-
-                // check for a template
-                if ( col.headertemplate ) {
-                    if ( typeof ( col.headertemplate ) === 'function' ) {
-                        html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
-                    }
-                    else {
-                        html.add( gp.supplant.call( this, col.headertemplate, col, [col] ) );
-                    }
-                }
-                else if ( !gp.isNullOrEmpty( sort ) ) {
-                    html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
-                        .escape( sort )
-                        .add( '">' )
-                        .escape( gp.coalesce( [col.header, col.field, sort] ) )
-                        .add( '<span class="glyphicon"></span>' )
-                        .add( '</a>' );
-                }
-                else {
-                    html.escape( gp.coalesce( [col.header, col.field, ''] ) );
-                }
-                html.add( '</th>' );
-            } );
-            html.add( '</tr>' )
-                .add( '</thead>' );
-            return html.toString();
-        },
-
-        theadFixed: function () {
-            if ( this.fixedheaders ) {
-                return gp.helpers['thead'].call( $config );
-            }
-        },
-
-        theadUnfixed: function () {
-            if ( !this.fixedheaders ) {
-                return gp.helpers['thead'].call( $config );
-            }
-        },
-
-        toolbartemplate: function () {
-            var html = new gp.StringBuilder();
-            if ( typeof ( this.toolbartemplate ) === 'function' ) {
-                html.add( gp.applyFunc( this.toolbartemplate, this ) );
-            }
-            else {
-                html.add( this.toolbartemplate );
-            }
-            return html.toString();
         }
 
     };
@@ -1886,29 +1593,36 @@ var gridponent = gridponent || function ( elem, options ) {
 
         initializeOptions: function ( options, callback ) {
             var self = this;
-            var requestModel = new gp.PagingModel();
             options.pageModel = {};
             options.ID = gp.createUID();
             this.config = options;
             this.config.map = new gp.DataMap();
+            this.config.pageModel = new gp.PagingModel();
+            this.config.editmode = this.config.editmode || 'inline';
+            this.config.newrowposition = this.config.newrowposition || 'top';
 
+            // this has to be defined before renderLayout
             this.injector = new gp.Injector( {
                 $config: this.config,
                 $columns: this.config.columns,
                 $node: this.config.node,
-                $pageModel: requestModel,
+                $pageModel: this.config.pageModel,
                 $map: this.config.map,
-            }, gp.templates );
+                $data: this.config.pageModel.data
+            }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
+            // this has to happen here so we can find the table-container
             this.renderLayout( this.config, this.parent );
+
             this.config.node = this.parent.find( '.table-container' )[0];
             this.$n = this.parent.find( '.table-container' );
 
             var dal = new gp.DataLayer( this.config );
-            var controller = new gp.Controller( this.config, dal, requestModel );
+            var controller = new gp.Controller( this.config, dal, this.config.pageModel, this.injector );
             this.config.node.api = new gp.api( controller );
-            this.config.footer = this.resolveFooter( this.config );
+            this.config.hasFooter = this.resolveFooter( this.config );
             this.config.preload = this.config.preload === false ? this.config.preload : true;
+            this.injector.context = this.config.node.api;
 
             setTimeout( function () {
                 // do this here to give external scripts a chance to run first
@@ -1924,10 +1638,11 @@ var gridponent = gridponent || function ( elem, options ) {
                     // and beforeInit happens just once after the node is created, but before first read
                     controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
 
-                    dal.read( requestModel,
+                    dal.read( self.config.pageModel,
                         function ( data ) {
                             try {
                                 gp.shallowCopy( data, self.config.pageModel, true );
+                                self.injector.setResource( '$data', self.config.pageModel.data );
                                 gp.resolveTypes( self.config );
                                 self.resolveCommands( self.config );
                                 self.render( self.config );
@@ -1964,9 +1679,6 @@ var gridponent = gridponent || function ( elem, options ) {
                 config = gp.getAttributes( parentNode ),
                 gpColumns = $( parentNode ).find( 'gp-column' );
 
-            // modal or inline
-            config.editmode = config.editmode || 'inline';
-
             config.columns = [];
 
             // create the column configurations
@@ -1974,13 +1686,11 @@ var gridponent = gridponent || function ( elem, options ) {
             gpColumns.each( function () {
                 colConfig = gp.getAttributes( this );
                 config.columns.push( colConfig );
-                self.resolveTemplates( templates, colConfig, this );
+                self.resolveTemplates( templates, colConfig, this, 'template' );
             } );
 
-
-
             // resolve the various templates
-            this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );
+            this.resolveTemplates( Object.getOwnPropertyNames( gp.templates ), config, parentNode, '' );
 
             return config;
         },
@@ -2004,7 +1714,7 @@ var gridponent = gridponent || function ( elem, options ) {
 
         renderLayout: function ( config, parentNode ) {
             try {
-                $( parentNode ).html( this.injector.exec( 'gridponent' ) );
+                $( parentNode ).html( this.injector.exec( 'container' ) );
             }
             catch ( ex ) {
                 gp.error( ex );
@@ -2022,9 +1732,9 @@ var gridponent = gridponent || function ( elem, options ) {
                 var footer = this.$n.find( 'div.table-footer' );
                 var pager = this.$n.find( 'div.table-pager' );
 
-                body.html( gp.templates['gridponent-body']( config ) );
-                footer.html( gp.templates['gridponent-table-footer']( config ) );
-                pager.html( gp.templates['gridponent-pager']( config ) );
+                body.html( self.injector.exec( 'tableBody' ) );
+                footer.html( self.injector.exec( 'footerTable' ) );
+                pager.html( self.injector.exec( 'pagerBar' ) );
                 gp.helpers.sortStyle( config );
 
                 // sync column widths
@@ -2048,7 +1758,7 @@ var gridponent = gridponent || function ( elem, options ) {
         },
 
         syncColumnWidths: function ( config ) {
-            var html = gp.helpers.columnWidthStyle.call( config );
+            var html = this.injector.exec( 'columnWidthStyle' );
             this.$n.find( 'style.column-width-style' ).html( html );
         },
 
@@ -2073,7 +1783,7 @@ var gridponent = gridponent || function ( elem, options ) {
             } );
         },
 
-        resolveTemplates: function ( names, config, node ) {
+        resolveTemplates: function ( names, config, node, suffix ) {
             var selector,
                 template,
                 prop,
@@ -2085,23 +1795,12 @@ var gridponent = gridponent || function ( elem, options ) {
                 if ( template.length ) {
                     for ( var i = 0; i < $node[0].children.length; i++ ) {
                         if ( $node[0].children[i] == template[0] ) {
-                            prop = gp.camelize( n ) + 'template';
+                            prop = gp.camelize( n ) + suffix;
                             config[prop] = template[0].innerHTML;
                             return;
                         }
                     }
                 }
-            } );
-        },
-
-        compileTemplates: function ( config ) {
-            var templates = ['headertemplate', 'bodytemplate', 'edittemplate', 'footertemplate'];
-            templates.forEach( function ( template ) {
-                config.columns.forEach( function ( col ) {
-                    if ( col[template] ) {
-                        col[template] = new gp.Template( col[template] );
-                    }
-                } );
             } );
         },
 
@@ -2137,28 +1836,46 @@ var gridponent = gridponent || function ( elem, options ) {
         Injector
     \***************/
 
-    gp.Injector = function ( resources, root ) {
+    gp.Injector = function ( resources, root, context, overrides ) {
         this.resources = resources;
+        resources.$injector = this;
         this.root = root || window;
+        this.context = context || this;
+        this.overrides = overrides || {};
     };
 
     gp.Injector.prototype = {
-        addResource: function ( name, value ) {
+        setResource: function ( name, value ) {
             this.resources[name] = value;
+            return this;
         },
-        exec: function ( funcOrName, model ) {
+        base: function ( funcOrName, model ) {
+            return this.exec( funcOrName, model, true );
+        },
+        exec: function ( funcOrName, model, base ) {
             var args;
             if ( typeof funcOrName == 'string' ) {
-                funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+                if ( base ) {
+                    // call the base function
+                    funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+                }
+                else {
+                    // check for override
+                    funcOrName = gp.getObjectAtPath( funcOrName, this.overrides ) || gp.getObjectAtPath( funcOrName, this.root );
+                }
             }
             if ( typeof funcOrName == 'function' ) {
                 args = this.inject( funcOrName );
                 if ( gp.hasValue( model ) ) {
                     args.push( model );
                 }
-                return funcOrName.apply( this, args );
+                // supply this injector as the context
+                return funcOrName.apply( this.context, args );
             }
-            throw "Could not resolve function dependencies: " + funcOrName.toString();
+            else {
+                return gp.supplant.call( this.context, funcOrName, this.resources );
+            }
+            return this;
         },
         inject: function ( func ) {
             var self = this,
@@ -2238,62 +1955,75 @@ var gridponent = gridponent || function ( elem, options ) {
 
         bindElements: function ( model, context ) {
             var self = this,
-                value,
+                value;
+
+            Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+                value = model[prop];
+                if ( Array.isArray( value ) ) {
+                    value.forEach( function ( val ) {
+                        self.bindElement( prop, val, context );
+                    } );
+                }
+                else {
+                    self.bindElement( prop, value, context );
+                }
+            } );
+        },
+
+        bindElement: function ( prop, value, context ) {
+            var self = this,
                 clean,
                 elem;
 
-            Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+            value = gp.hasValue( value ) ? value.toString() : '';
 
-                value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
+            // is there a checkbox or radio with this name and value?
+            // don't select the value because it might throw a syntax error
+            elem = $( context ).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-                // is there a checkbox or radio with this name and value?
-                // don't select the value because it might throw a syntax error
-                elem = $( context ).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
+            if ( elem.length > 0 ) {
 
-                if ( elem.length > 0 ) {
+                clean = gp.escapeHTML( value );
 
-                    clean = gp.escapeHTML( value );
-
-                    for ( var i = 0; i < elem.length; i++ ) {
-                        if ( elem[i].value == value || elem[i].value == clean ) {
-                            elem[i].checked = true;
-                            return;
-                        }
-                    }
-                }
-
-                // check for boolean
-                if ( /^(true|false)$/i.test( value ) ) {
-                    elem = $( context ).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
-
-                    if ( elem.length > 0 ) {
-                        elem.each( function ( e ) {
-                            this.checked = (
-                                ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
-                                ||
-                                ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
-                            );
-                        } );
-
+                for ( var i = 0; i < elem.length; i++ ) {
+                    if ( elem[i].value == value || elem[i].value == clean ) {
+                        elem[i].checked = true;
                         return;
                     }
                 }
+            }
 
-                elem = $( context ).find( '[name="' + prop + '"]' );
+            // check for boolean
+            if ( /^(true|false)$/i.test( value ) ) {
+                elem = $( context ).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
+
                 if ( elem.length > 0 ) {
+                    elem.each( function ( e ) {
+                        this.checked = (
+                            ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
+                            ||
+                            ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
+                        );
+                    } );
 
-                    // inputs with a value property
-                    if ( elem[0].value !== undefined ) {
-                        elem[0].value = value;
-                    }
-                        // inputs without a value property (e.g. textarea)
-                    else if ( elem[0].innerHTML !== undefined ) {
-                        elem.html( value == null ? '' : gp.escapeHTML( value ) );
-                    }
+                    return;
+                }
+            }
 
+            elem = $( context ).find( '[name="' + prop + '"]' );
+            if ( elem.length > 0 ) {
+
+                // inputs with a value property
+                if ( elem[0].value !== undefined ) {
+                    elem.val( value );
+                }
+                    // inputs without a value property (e.g. textarea)
+                else if ( elem[0].innerHTML !== undefined ) {
+                    elem.html( value == null ? '' : gp.escapeHTML( value ) );
                 }
 
-            }.bind( this ) );
+            }
+
         },
 
         castValues: function ( model, columns ) {
@@ -2405,7 +2135,7 @@ var gridponent = gridponent || function ( elem, options ) {
                     delete copy[prop];
                 }
             } );
-            var url = gp.supplant( this.url, copy, copy );
+            var url = gp.supplant( this.url, model, model );
             var h = new gp.Http();
             h.post( url, copy, callback, error );
         }
@@ -2615,7 +2345,7 @@ var gridponent = gridponent || function ( elem, options ) {
         this.sort = '';
         this.desc = false;
         this.search = '';
-        this.data = data;
+        this.data = data || [];
         this.totalrows = ( data != undefined && data.length ) ? data.length : 0;
         this.pagecount = 0;
 
@@ -2663,92 +2393,68 @@ var gridponent = gridponent || function ( elem, options ) {
 
     };
     /***************\
-       template
-    \***************/
-
-    gp.Template = function ( template ) {
-        this.template = template;
-        this.dict = {};
-        this.props = null;
-        this.compile( template );
-    };
-
-    gp.Template.prototype = {
-        rRaw: /({{{([^{}]*)}}})/g,
-        rEsc: /({{([^{}]*)}})(?:$|[^}])/g,
-        r3Braces: /^{{{/,
-        rTypes: /^(string|number|boolean)$/,
-        compile: function () {
-            if ( typeof this.template === 'string' ) {
-                var m;
-                while ( ( m = this.rRaw.exec( this.template ) ) !== null ) {
-                    this.resolveToken( m[1], m[2] );
-                }
-                while ( ( m = this.rEsc.exec( this.template ) ) !== null ) {
-                    this.resolveToken( m[1], m[2] );
-                }
-                this.props = Object.getOwnPropertyNames( this.dict );
-            }
-        },
-        resolveToken: function ( token, expression ) {
-            var obj = gp.getObjectAtPath( expression );
-            if ( typeof obj === 'function' ) {
-                this.dict[token] = obj;
-            }
-            else {
-                this.dict[token] = expression;
-            }
-        },
-        render: function ( model, arg ) {
-            var self = this,
-                str = this.template,
-                expression,
-                val;
-
-            if ( typeof this.template === 'function' ) {
-                return gp.applyFunc( this.template, self, [model, arg] );
-            }
-
-            this.props.forEach( function ( prop ) {
-                expression = self.dict[prop];
-                if ( typeof expression === 'function' ) {
-                    val = gp.applyFunc( expression, self, [model, arg] );
-                }
-                else {
-                    val = model[expression];
-                    // models can contain functions
-                    if ( typeof val === 'function' ) {
-                        val = gp.applyFunc( val, self, [model, arg] );
-                    }
-                }
-                if ( self.r3Braces.test( prop ) === false ) {
-                    val = gp.escapeHTML( val );
-                }
-                str = self.replaceAll( str, prop, val );
-            } );
-
-            return str;
-        },
-        replaceAll: function ( template, s1, s2 ) {
-            s2 = gp.hasValue( s2 ) ? s2 : '';
-            return template.split( s1 ).join( s2 );
-        }
-
-    };
-    /***************\
         templates
     \***************/
     gp.templates = gp.templates || {};
-    gp.templates['bootstrap-modal'] = function ( model ) {
+
+    gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
+        var self = this,
+            template,
+            format,
+            val,
+            glyphicon,
+            btnClass,
+            hasDeleteBtn = false,
+            type = ( $column.Type || '' ).toLowerCase(),
+            html = new gp.StringBuilder();
+
+        if ( $dataItem == null ) return;
+
+        val = gp.getFormattedValue( $dataItem, $column, true );
+
+        // check for a template
+        if ( $column.bodytemplate ) {
+            if ( typeof ( $column.bodytemplate ) === 'function' ) {
+                html.add( gp.applyFunc( $column.bodytemplate, this, [$dataItem, $column] ) );
+            }
+            else {
+                html.add( gp.supplant.call( this, $column.bodytemplate, $dataItem, [$dataItem, $column] ) );
+            }
+        }
+        else if ( $column.commands && $column.commands.length ) {
+            html.add( '<div class="btn-group btn-group-xs" role="group">' );
+            $column.commands.forEach( function ( cmd, index ) {
+                html.add( $injector.exec( 'button', cmd ) );
+            } );
+            html.add( '</div>' );
+        }
+        else if ( gp.hasValue( val ) ) {
+            // show a checkmark for bools
+            if ( type === 'boolean' ) {
+                if ( val === true ) {
+                    html.add( '<span class="glyphicon glyphicon-ok"></span>' );
+                }
+            }
+            else {
+                // getFormattedValue has already escaped html
+                html.add( val );
+            }
+        }
+        return html.toString();
+    };
+
+    gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
+
+    gp.templates.bootstrapModal = function ( model ) {
         model.footer = model.footer ||
-            '<div class="btn-group"><button type="button" class="btn btn-default" data-dismiss="modal" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
+            '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
 
         var html = new gp.StringBuilder();
         html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{uid}}">' )
             .add( '<div class="modal-dialog" role="document">' )
             .add( '<div class="modal-content">' )
             .add( '<div class="modal-header">' )
-            .add( '<button type="button" class="close" data-dismiss="modal" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
+            .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
             .add( '<h4 class="modal-title">{{title}}</h4>' )
             .add( '</div>' )
             .add( '<div class="modal-body">{{{body}}}</div>' )
@@ -2762,46 +2468,391 @@ var gridponent = gridponent || function ( elem, options ) {
             .add( '</div>' )
             .add( '</div>' );
 
-        return gp.supplant( html.toString(), model );
-    };
-    gp.templates['gridponent-body'] = function ( $config ) {
-        var html = new gp.StringBuilder();
-        html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
-        if ( !$config.fixedheaders ) {
-            html.add( gp.helpers['thead'].call( $config ) );
-        }
-        html.add( '<tbody>' )
-            .add( gp.helpers['tableRows'].call( $config ) )
-            .add( '</tbody>' );
-        if ( $config.footer && !$config.fixedfooters ) {
-            html.add( gp.templates['gridponent-tfoot']( $config ) );
-        }
-        html.add( '</table>' );
-        return html.toString();
+        return gp.supplant.call( this, html.toString(), model );
     };
 
-    gp.templates['gridponent-body'].$inject = ['$config'];
+    gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $injector ) {
 
-    gp.templates['gridponent-cells'] = function ( model ) {
+        var self = this,
+            model = {
+                title: ( $mode == 'create' ? 'Add' : 'Edit' ),
+                body: '',
+                footer: null,
+                uid: $config.map.getUid( $dataItem )
+            };
+
         var html = new gp.StringBuilder();
-        model.columns.forEach( function ( col, index ) {
-            html.add( '    <td class="body-cell ' );
+
+        // not using a form element here because the modal is added as a child node of the grid component
+        // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
+        html.add( '<div class="form-horizontal">' );
+
+        $config.columns.forEach( function ( col ) {
+            $injector.setResource( '$column', col );
             if ( col.commands ) {
-                html.add( 'commands ' );
+                model.footer = $injector.exec( 'editCellContent' );
+                return;
             }
-            html.add( col.bodyclass )
-                .add( '">' )
-                .add( gp.helpers['bodyCellContent'].call( model, col ) )
-                .add( '</td>' );
+            var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
+            if ( !canEdit ) return;
+
+            var formGroupModel = {
+                label: null,
+                input: $injector.exec( 'editCellContent' ),
+                editclass: col.editclass
+            };
+
+            // headers become labels
+            // check for a template
+            if ( col.headertemplate ) {
+                if ( typeof ( col.headertemplate ) === 'function' ) {
+                    formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
+                }
+                else {
+                    formGroupModel.label = ( gp.supplant.call( self, col.headertemplate, [col] ) );
+                }
+            }
+            else {
+                formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
+            }
+
+            html.add( $injector.exec( 'formGroup', formGroupModel ) );
         } );
+
+        html.add( '</div>' );
+
+        model.body = html.toString();
+
+        return $injector.exec( 'bootstrapModal', model );
+    };
+
+    gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
+
+    gp.templates.button = function ( model ) {
+        var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+        return gp.supplant.call( this, template, model );
+    };
+
+    gp.templates.columnWidthStyle = function ( $config, $columns ) {
+        var html = new gp.StringBuilder(),
+            width,
+            index = 0,
+            bodyCols = document.querySelectorAll( '#' + $config.ID + ' .table-body > table > tbody > tr:first-child > td' );
+
+        // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
+        $columns.forEach( function ( col ) {
+            if ( col.width ) {
+                // fixed width should include the body
+                html.add( '#' + $config.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
+                    .add( '#' + $config.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
+                    .add( ',' )
+                    .add( '#' + $config.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
+                    .add( '#' + $config.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
+                    .add( '{ width:' )
+                    .add( col.width );
+                if ( isNaN( col.width ) == false ) html.add( 'px' );
+                html.add( ';}' );
+            }
+            else if ( bodyCols.length && ( $config.fixedheaders || $config.fixedfooters ) ) {
+                // sync header and footer to body
+                width = bodyCols[index].offsetWidth;
+                html.add( '#' + $config.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
+                    .add( '#' + $config.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
+                    .add( '{ width:' )
+                    .add( bodyCols[index].offsetWidth )
+                    .add( 'px;}' );
+            }
+            index++;
+        } );
+
         return html.toString();
     };
 
-    gp.templates['gridponent-cells'].$inject = ['$columns'];
+    gp.templates.columnWidthStyle.$inject = ['$config', '$columns'];
 
+    gp.templates.container = function ( $config, $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<div class="gp table-container ' )
+            .add( $injector.exec( 'containerClasses' ) )
+            .add( '" id="' )
+            .add( $config.ID )
+            .add( '">' );
+        if ( $config.search || $config.create || $config.toolbar ) {
+            html.add( '<div class="table-toolbar">' );
+            html.add( $injector.exec( 'toolbar' ) );
+            html.add( '</div>' );
+        }
+        if ( $config.fixedheaders ) {
+            html.add( '<div class="table-header">' )
+                .add( '<table class="table" cellpadding="0" cellspacing="0">' )
+                .add( $injector.exec( 'header' ) )
+                .add( '</table>' )
+                .add( '</div>' );
+        }
+        html.add( '<div class="table-body ' );
+        if ( $config.fixedheaders ) {
+            html.add( 'table-scroll' );
+        }
+        html.add( '">' )
+            .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
+            .add( '</div>' );
+        if ( $config.fixedfooters ) {
+            html.add( '<div class="table-footer"></div>' );
+        }
+        if ( $config.pager ) {
+            html.add( '<div class="table-pager"></div>' );
+        }
+        html.add( '<style type="text/css" class="column-width-style">' )
+            .add( $injector.exec( 'columnWidthStyle' ) )
+            .add( '</style>' )
+            .add( '<div class="gp-progress-overlay">' )
+            .add( '<div class="gp-progress gp-progress-container">' )
+            .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
+            .add( '</div>' )
+            .add( '</div>' )
+            .add( '</div>' );
+        return html.toString();
+    };
 
-    gp.templates['gridponent-pager'] = function ( model ) {
-        var pageModel = gp.shallowCopy( model.pageModel ),
+    gp.templates.container.$inject = ['$config', '$injector'];
+
+    gp.templates.containerClasses = function ( $config ) {
+        var classes = [];
+        if ( $config.fixedheaders ) {
+            classes.push( 'fixed-headers' );
+        }
+        if ( $config.fixedfooters ) {
+            classes.push( 'fixed-footers' );
+        }
+        if ( $config.pager ) {
+            classes.push( 'pager-' + $config.pager );
+        }
+        if ( $config.responsive ) {
+            classes.push( 'table-responsive' );
+        }
+        if ( $config.search ) {
+            classes.push( 'search-' + $config.search );
+        }
+        if ( $config.rowselected ) {
+            classes.push( 'selectable' );
+        }
+        if ( $config.containerclass ) {
+            classes.push( $config.containerclass );
+        }
+        return classes.join( ' ' );
+    };
+
+    gp.templates.containerClasses.$inject = ['$config'];
+
+    gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $injector ) {
+        var template,
+            col = $column,
+            html = new gp.StringBuilder();
+
+        // check for a template
+        if ( col.edittemplate ) {
+            if ( typeof ( col.edittemplate ) === 'function' ) {
+                html.add( gp.applyFunc( col.edittemplate, this, [$dataItem, col] ) );
+            }
+            else {
+                html.add( gp.supplant.call( this, col.edittemplate, $dataItem, [$dataItem, col] ) );
+            }
+        }
+        else if ( col.commands ) {
+            html.add( '<div class="btn-group' )
+                .add( $config.editmode == 'inline' ? ' btn-group-xs' : '' )
+                .add( '">' )
+                .add( $injector.exec( 'button', {
+                    btnClass: 'btn-primary',
+                    value: ( $mode == 'create' ? 'create' : 'update' ),
+                    glyphicon: 'glyphicon-save',
+                    text: 'Save'
+                } ) )
+                .add( '<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">' )
+                .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
+                .add( '</button>' )
+                .add( '</div>' );
+        }
+        else {
+            var val = $dataItem[col.field];
+            // render undefined/null as empty string
+            if ( !gp.hasValue( val ) ) val = '';
+            html.add( $injector.exec( 'input', { type: col.Type, name: col.field, value: "", required: ( $column.required || false ) } ) );
+        }
+        return html.toString();
+    };
+
+    gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode', '$config', '$injector'];
+
+    gp.templates.footer = function ( $columns, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder();
+        html.add( '<tfoot>' )
+            .add( '<tr>' )
+        $columns.forEach( function ( col ) {
+            $injector.setResource( '$column', col );
+            html.add( $injector.exec( 'footerCell' ) );
+        } );
+        html.add( '</tr>' )
+            .add( '</tfoot>' );
+        return html.toString();
+    };
+
+    gp.templates.footer.$inject = ['$columns', '$injector'];
+
+    gp.templates.footerCell = function ( $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<td class="footer-cell">' )
+            .add( $injector.exec( 'footerCellContent' ) )
+            .add( '</td>' );
+        return html.toString();
+    };
+
+    gp.templates.footerCell.$inject = ['$injector'];
+
+    gp.templates.footerCellContent = function ( $data, $column ) {
+        var html = new gp.StringBuilder();
+        if ( $column.footertemplate ) {
+            if ( typeof ( $column.footertemplate ) === 'function' ) {
+                html.add( gp.applyFunc( $column.footertemplate, this, [$column, $data] ) );
+            }
+            else {
+                html.add( gp.supplant.call( this, $column.footertemplate, $column, [$column, $data] ) );
+            }
+        }
+        return html.toString();
+    };
+
+    gp.templates.footerCellContent.$inject = ['$data', '$column'];
+
+    gp.templates.footerTable = function ( $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
+            .add( $injector.exec( 'footer' ) )
+            .add( '</table>' );
+        return html.toString();
+    };
+
+    gp.templates.footerTable.$inject = ['$injector'];
+
+    gp.templates.formGroup = function ( model ) {
+        var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        return gp.supplant.call( this, template, model );
+    };
+
+    gp.templates.header = function ( $columns, $config, $injector ) {
+        // depending on whether or not fixedheaders has been specified
+        // this template is rendered either in a table by itself or inside the main table
+        var html = new gp.StringBuilder();
+        html.add( '<thead><tr>' );
+        $columns.forEach( function ( col ) {
+            html.add( $injector.setResource( '$column', col ).exec( 'headerCell' ) );
+        } );
+        html.add( '</tr></thead>' );
+        return html.toString();
+    };
+
+    gp.templates.header.$inject = ['$columns', '$config', '$injector'];
+
+    gp.templates.headerCell = function ( $column, $config, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder(),
+            sort = '';
+
+        if ( $config.sorting ) {
+            // if sort isn't specified, use the field
+            sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
+        }
+        else {
+            // only provide sorting where it is explicitly specified
+            if ( gp.hasValue( $column.sort ) ) {
+                sort = gp.escapeHTML( $column.sort );
+            }
+        }
+
+        html.add( '<th class="header-cell ' + ( $column.headerclass || '' ) + '"' );
+
+        if ( gp.hasValue( sort ) ) {
+            html.add( ' data-sort="' + sort + '"' );
+        }
+
+        html.add( '>' );
+        html.add( $injector.exec( 'headerCellContent' ) );
+        html.add( '</th>' );
+
+        return html.toString();
+    };
+
+    gp.templates.headerCell.$inject = ['$column', '$config', '$injector'];
+
+    gp.templates.headerCellContent = function ( $column, $config ) {
+
+        var self = this,
+            html = new gp.StringBuilder(),
+            sort = '';
+
+        if ( $config.sorting ) {
+            // if sort isn't specified, use the field
+            sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
+        }
+        else {
+            // only provide sorting where it is explicitly specified
+            if ( gp.hasValue( $column.sort ) ) {
+                sort = gp.escapeHTML( $column.sort );
+            }
+        }
+
+        // check for a template
+        if ( $column.headertemplate ) {
+            if ( typeof ( $column.headertemplate ) === 'function' ) {
+                html.add( gp.applyFunc( $column.headertemplate, self, [$column] ) );
+            }
+            else {
+                html.add( gp.supplant.call( self, $column.headertemplate, $column, [$column] ) );
+            }
+        }
+        else if ( !gp.isNullOrEmpty( sort ) ) {
+            html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
+                .escape( sort )
+                .add( '">' )
+                .escape( gp.coalesce( [$column.header, $column.field, sort] ) )
+                .add( '<span class="glyphicon"></span>' )
+                .add( '</a>' );
+        }
+        else {
+            html.escape( gp.coalesce( [$column.header, $column.field, ''] ) );
+        }
+
+        return html.toString();
+    };
+
+    gp.templates.headerCellContent.$inject = ['$column', '$config'];
+
+    gp.templates.input = function ( model ) {
+        var obj = {
+            type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
+            name: model.name,
+            value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
+            checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
+            // Don't bother with the date input type.
+            // Indicate the type using data-type attribute so a custom date picker can be used.
+            // This sidesteps the problem of polyfilling browsers that don't support the date input type
+            // and provides a more consistent experience across browsers.
+            dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' ),
+            required: ( model.required ? ' required' : '' )
+        };
+
+        var html = gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}}{{required}} />', obj );
+
+        if ( model.required ) {
+            html += '<span class="required"></span>';
+        }
+
+        return html;
+    };
+
+    gp.templates.pagerBar = function ( $pageModel ) {
+        var pageModel = gp.shallowCopy( $pageModel ),
             html = new gp.StringBuilder();
 
         pageModel.IsFirstPage = pageModel.page === 1;
@@ -2815,124 +2866,141 @@ var gridponent = gridponent || function ( elem, options ) {
 
         if ( pageModel.HasPages ) {
             html.add( '<div class="btn-group">' )
-                .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
+                .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
                 .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
                 .add( '</button>' )
-                .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
+                .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
                 .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
                 .add( '</button>' )
                 .add( '</div>' )
                 .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
                 .add( '<span class="page-count"> of {{pagecount}}</span>' )
                 .add( '<div class="btn-group">' )
-                .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
+                .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
                 .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
                 .add( '</button>' )
-                .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+                .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
                 .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
                 .add( '</button>' )
                 .add( '</div>' );
         }
-        return gp.supplant( html.toString(), pageModel );
+        return gp.supplant.call( this, html.toString(), pageModel );
     };
 
-    gp.templates['gridponent-pager'].$inject = ['$pageModel'];
+    gp.templates.pagerBar.$inject = ['$pageModel'];
 
-    gp.templates['gridponent-table-footer'] = function ( model ) {
+    gp.templates.tableBody = function ( $config, $injector ) {
         var html = new gp.StringBuilder();
-        html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
-            .add( gp.templates['gridponent-tfoot']( model ) )
-            .add( '</table>' );
+        html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
+        if ( !$config.fixedheaders ) {
+            html.add( $injector.exec( 'header' ) );
+        }
+        html.add( '<tbody>' )
+            .add( $injector.exec( 'tableRows' ) )
+            .add( '</tbody>' );
+        if ( $config.hasFooter && !$config.fixedfooters ) {
+            html.add( $injector.exec( 'footer' ) );
+        }
+        html.add( '</table>' );
         return html.toString();
     };
 
-    gp.templates['gridponent-tfoot'] = function ( model ) {
-        var html = new gp.StringBuilder();
-        html.add( '<tfoot>' )
-            .add( '<tr>' )
-        model.columns.forEach( function ( col, index ) {
-            html.add( '<td class="footer-cell">' )
-                .add( gp.helpers['footerCell'].call( model, col ) )
-                .add( '</td>' );
-        } );
-        html.add( '</tr>' )
-            .add( '</tfoot>' );
-        return html.toString();
-    };
+    gp.templates.tableBody.$inject = ['$config', '$injector'];
 
-    gp.templates['gridponent-tfoot'].$inject = ['$columns'];
-
-    gp.templates['gridponent'] = function ( model ) {
-        var html = new gp.StringBuilder();
-        html.add( '<div class="gp table-container' )
-            .add( gp.helpers['containerClasses'].call( model ) )
-            .add( '" id="' )
-            .add( model.ID )
-            .add( '">' );
-        if ( model.search || model.create || model.toolbartemplate ) {
-            html.add( '<div class="table-toolbar">' );
-            if ( model.toolbartemplate ) {
-                html.add( gp.helpers['toolbartemplate'].call( model ) );
-            } else {
-                if ( model.search ) {
-                    html.add( '<div class="input-group gridponent-searchbox">' )
-                        .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
-                        .add( '<span class="input-group-btn">' )
-                        .add( '<button class="btn btn-default" type="button" value="search">' )
-                        .add( '<span class="glyphicon glyphicon-search"></span>' )
-                        .add( '</button>' )
-                        .add( '</span>' )
-                        .add( '</div>' );
-                }
-                if ( model.create ) {
-                    html.add( '<button class="btn btn-default" type="button" value="AddRow">' )
-                        .add( '<span class="glyphicon glyphicon-plus"></span>Add' )
-                        .add( '</button>' );
-                }
-            }
-            html.add( '</div>' );
-        }
-        if ( model.fixedheaders ) {
-            html.add( '<div class="table-header">' )
-                .add( '<table class="table" cellpadding="0" cellspacing="0">' )
-                .add( gp.helpers['thead'].call( model ) )
-                .add( '</table>' )
-                .add( '</div>' );
-        }
-        html.add( '    <div class="table-body ' );
-        if ( model.fixedheaders ) {
-            html.add( 'table-scroll' );
-        }
-        html.add( '" style="' )
-            .add( model.style )
+    gp.templates.tableRow = function ( $injector, uid ) {
+        var self = this,
+            html = new gp.StringBuilder();
+        html.add( '<tr data-uid="' )
+            .add( uid )
             .add( '">' )
-            .add( '<table class="table" cellpadding="0" cellspacing="0">' );
-        if ( !model.fixedheaders ) {
-            html.add( gp.helpers['thead'].call( model ) );
-        }
-        html.add( '</table>' )
-            .add( '</div>' );
-        if ( model.fixedfooters ) {
-            html.add( '<div class="table-footer">' )
-                .add( gp.templates['gridponent-table-footer']( model ) )
-                .add( '</div>' );
-        }
-        if ( model.pager ) {
-            html.add( '<div class="table-pager"></div>' );
-        }
-        html.add( '<style type="text/css" class="column-width-style">' )
-            .add( gp.helpers['columnWidthStyle'].call( model ) )
-            .add( '</style>' )
-            .add( '<div class="gp-progress-overlay">' )
-            .add( '<div class="gp-progress gp-progress-container">' )
-            .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
-            .add( '</div>' )
-            .add( '</div>' )
-            .add( '</div>' );
+            .add( $injector.exec( 'tableRowCells' ) )
+            .add( '</tr>' );
         return html.toString();
     };
 
-    gp.templates['gridponent'].$inject = ['$config'];
+    gp.templates.tableRow.$inject = ['$injector'];
+
+    gp.templates.tableRowCell = function ( $column, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder();
+
+        html.add( '<td class="body-cell ' );
+        if ( $column.commands ) {
+            html.add( 'commands ' );
+        }
+        html.add( $column.bodyclass )
+            .add( '">' )
+            .add( $injector.exec( 'bodyCellContent' ) )
+            .add( '</td>' );
+
+        return html.toString();
+    };
+
+    gp.templates.tableRowCell.$inject = ['$column', '$injector'];
+
+    gp.templates.tableRowCells = function ( $columns, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder();
+        $columns.forEach( function ( col ) {
+            // set the current column for bodyCellContent template
+            $injector.setResource( '$column', col );
+            html.add( $injector.exec( 'tableRowCell' ) );
+        } );
+        return html.toString();
+    };
+
+    gp.templates.tableRowCells.$inject = ['$columns', '$injector'];
+
+    gp.templates.tableRows = function ( $data, $map, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder(),
+            uid;
+        if ( !$map ) {
+            $map = new gp.DataMap();
+            $injector.setResource( '$map', $map );
+        }
+        if ( $data == null ) return '';
+        $data.forEach( function ( dataItem ) {
+            // set the current data item on the injector
+            $injector.setResource( '$dataItem', dataItem );
+            // assign a uid to the dataItem, pass it to the tableRow template
+            uid = $map.assign( dataItem );
+            html.add( $injector.exec( 'tableRow', uid ) );
+        } );
+        return html.toString();
+    };
+
+    gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
+
+    gp.templates.toolbar = function ( $config, $injector ) {
+        var html = new gp.StringBuilder();
+
+        if ( $config.search ) {
+            html.add( '<div class="input-group gridponent-searchbox">' )
+                .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
+                .add( '<span class="input-group-btn">' )
+                .add( $injector.exec( 'button', {
+                    btnClass: 'btn-default',
+                    value: 'search',
+                    glyphicon: 'glyphicon-search'
+                } ) )
+                .add( '</span>' )
+                .add( '</div>' );
+        }
+        if ( $config.create ) {
+            html.add( $injector.exec( 'button',
+                {
+                    btnClass: 'btn-default',
+                    value: 'AddRow',
+                    glyphicon: 'glyphicon-plus',
+                    text: 'Add'
+                } ) );
+        }
+
+        return html.toString();
+    };
+
+    gp.templates.toolbar.$inject = ['$config', '$injector'];
     /***************\
        UpdateModel
     \***************/
@@ -2947,14 +3015,6 @@ var gridponent = gridponent || function ( elem, options ) {
        utilities
     \***************/
     ( function ( gp ) {
-
-        var matches = null;
-
-        var possibles = ['matches', 'matchesSelector', 'mozMatchesSelector', 'webkitMatchesSelector', 'msMatchesSelector', 'oMatchesSelector'];
-
-        for ( var i = 0; i < possibles.length && matches == null; i++ ) {
-            if ( Element.prototype[possibles[i]] ) matches = possibles[i];
-        }
 
         gp.applyFunc = function ( callback, context, args, error ) {
             if ( typeof callback !== 'function' ) return;
@@ -3100,14 +3160,16 @@ var gridponent = gridponent || function ( elem, options ) {
 
         gp.getFormattedValue = function ( row, col, escapeHTML ) {
             var type = ( col.Type || '' ).toLowerCase();
-            var val = row[col.field];
+            // if type equals function, col.field is the function
+            var val = ( type === 'function' ? col.field( row ) : row[col.field] );
 
             if ( /^(date|datestring|timestamp)$/.test( type ) ) {
                 return gp.formatter.format( val, col.format );
             }
-            if ( type === 'number' && col.format ) {
+            if ( /^(number|function)$/.test( type ) && col.format ) {
                 return gp.formatter.format( val, col.format );
             }
+            // if there's no type and there's a format and val is numeric then parse and format
             if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
                 return gp.formatter.format( parseFloat( val ), col.format );
             }
@@ -3195,23 +3257,31 @@ var gridponent = gridponent || function ( elem, options ) {
 
         gp.resolveTypes = function ( config ) {
             var field,
+                val,
                 hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
 
             config.columns.forEach( function ( col ) {
                 if ( gp.hasValue( col.Type ) ) return;
                 field = gp.hasValue( col.field ) ? col.field : col.sort;
                 if ( gp.isNullOrEmpty( field ) ) return;
+                if ( typeof field === 'function' ) {
+                    // don't execute the function here to find the type
+                    // it should only be executed once by getFormattedValue
+                    col.Type = 'function';
+                    return;
+                }
+                // give priority to the model, unless it contains a function
                 if ( config.model ) {
-                    // look for a type by field first, then by sort
-                    if ( gp.hasValue( config.model[field] ) ) {
+                    if ( gp.hasValue( config.model[field] ) && gp.getType( config.model[field] ) !== 'function' ) {
                         col.Type = gp.getType( config.model[field] );
                     }
                 }
                 if ( !gp.hasValue( col.Type ) && hasData ) {
                     // if we haven't found a value after 25 iterations, give up
                     for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
-                        if ( config.pageModel.data[i][field] !== null ) {
-                            col.Type = gp.getType( config.pageModel.data[i][field] );
+                        val = config.pageModel.data[i][field];
+                        if ( val !== null ) {
+                            col.Type = gp.getType( val );
                             break;
                         }
                     }
@@ -3236,10 +3306,20 @@ var gridponent = gridponent || function ( elem, options ) {
             // IE is more strict about what it will accept
             // as an argument to getOwnPropertyNames
             if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
-            var p, props = Object.getOwnPropertyNames( from );
+            var desc, p, props = Object.getOwnPropertyNames( from );
             props.forEach( function ( prop ) {
                 p = camelize ? gp.camelize( prop ) : prop;
-                to[p] = from[prop];
+                if ( to.hasOwnProperty( prop ) ) {
+                    // check for a read-only property
+                    desc = Object.getOwnPropertyDescriptor( to, prop );
+                    if ( !desc.writable ) return;
+                }
+                if ( typeof from[prop] === 'function' ) {
+                    to[p] = from[prop]();
+                }
+                else {
+                    to[p] = from[prop];
+                }
             } );
             return to;
         };
@@ -3249,7 +3329,7 @@ var gridponent = gridponent || function ( elem, options ) {
             // raw: 3 curly braces
             str = str.replace( /{{{([^{}]*)}}}/g,
                 function ( a, b ) {
-                    r = o[b];
+                    r = gp.getObjectAtPath( b, o );
                     if ( types.test( typeof r ) ) return r;
                     // models can contain functions
                     if ( typeof r === 'function' ) return gp.applyFunc( r, self, args );
@@ -3261,7 +3341,7 @@ var gridponent = gridponent || function ( elem, options ) {
             // escape HTML: 2 curly braces
             return str.replace( /{{([^{}]*)}}/g,
                 function ( a, b ) {
-                    r = o[b];
+                    r = gp.getObjectAtPath( b, o );
                     if ( types.test( typeof r ) ) return gp.escapeHTML( r );
                     // models can contain functions
                     if ( typeof r === 'function' ) return gp.escapeHTML( gp.applyFunc( r, self, args ) );
