@@ -105,7 +105,8 @@ columns: [
         <ul>
             <li>bodyCellContent</li>
             <li>bootstrapModal</li>
-            <li>bootstrapModalContent</li>
+            <li>bootstrapModalBody</li>
+            <li>bootstrapModalFooter</li>
             <li>columnWidthStyle</li>
             <li>container</li>
             <li>containerClasses</li>
@@ -192,6 +193,31 @@ gridponent('#grid1', {
             Note the function parameters.
             These must match the names of the resources in the list above.
             As long as your script is not minified, the injector will be able to read the function parameters and pass in the proper resources.
+        </p>
+
+        <h4>Injecting an External Resource</h4>
+
+        <p>
+            If you need to use external resources inside your template overrides, you must make them available to the injector.
+            Use the "inject" configuration option. This MUST be a string.
+        </p>
+
+        <pre>
+var fns = fns || {};
+
+fns.getCustomHeader = function(resources) {
+    return '&lt;span style="color:red"&gt;' + resources.$column.field + '&lt;/span&gt;';
+};
+
+gridponent('#grid1', {
+    read:'products',
+    inject: 'fns',
+    headerCellContent: '&lt;div class="custom-header-content"&gt;{{{fns.getCustomHeader}}}&lt;/div&gt;',
+    columns: [ ... ]
+});</pre>
+
+        <p>
+            Also note that when you reference functions inside your template, the injector's resources object is passed in as an argument.
         </p>
 
     </div>
