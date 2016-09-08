@@ -69,10 +69,10 @@
         </div>
 
         <div class="option">
-            <h4><code>getData( uidOrTableRow )</code></h4>
-
+            <h4><code>getData( uidOrElem )</code></h4>
             <p>
-                Returns the data row for the specified UID or table row element.
+                Returns the data row for the specified UID or HTML element.
+                The HTML element can be any element inside a table row or Bootstrap modal.
                 If no argument is supplied, returns the entire data array.
             </p>
         </div>
@@ -80,10 +80,8 @@
 
         <div class="option">
             <h4><code>getTableRow( dataItem )</code></h4>
-
             <p>
-                Return the table row element that is bound to the data item.
-
+                Return the table row HTML element that is bound to the data item.
             </p>
         </div>
         <div class="option">
@@ -97,7 +95,7 @@
             <h4><code>refresh( callback )</code></h4>
 
             <p>
-                Executes the configured read action using the current request model.
+                Executes the configured read action and rebinds the grid.
             </p>
         </div>
 

@@ -804,8 +804,11 @@ var gridponent = gridponent || function ( elem, options ) {
             if ( $.isNumeric( uidOrElem ) ) {
                 uid = parseInt( uidOrElem );
             }
-            else if ( $( uidOrElem ).is( '[data-uid]' ) ) {
-                uid = parseInt( $( uidOrElem ).attr( 'data-uid' ) );
+            else {
+                uidOrElem = $(uidOrElem).closest('[data-uid]');
+                if ( $( uidOrElem ).is( '[data-uid]' ) ) {
+                    uid = parseInt( $( uidOrElem ).attr( 'data-uid' ) );
+                }
             }
 
             if ( isNaN( uid ) ) return -1;

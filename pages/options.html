@@ -13,7 +13,7 @@
         <div class="option">
             <h4><code>read</code></h4>
             <p>
-                A URL template or function.
+                A URL template, function or array.
             </p>
         </div>
         <div class="option">
@@ -32,7 +32,7 @@
             <h4><code>destroy</code></h4>
             <p>
                 A URL template or function.
-                Note: gridponent issues an http delete here.
+                Note: gridponent issues an HTTP DELETE here.
                 Delete requests don't contain a body.
                 So the URL must uniquely identify the resource.
             </p>
@@ -52,6 +52,23 @@
                 A boolean flag. If true (default), gridponent executes its read configuration upon initialization.
             </p>
         </div>
+
+        <p>
+            Note: the function signatures for create, read, update and delete must match the following sample.
+        </p>
+
+        <p>
+            Gridponent requires either the done or fail callbacks to be called to continue.
+            If they aren't called, gridponent will hang.
+        </p>
+
+        <pre>
+function createProduct(dataItem, done, fail) {
+    // ... some record persistence logic here ...
+    done( dataItem );
+}
+</pre>
+
         <h3>Layout</h3>
 
         <div class="option">
@@ -102,12 +119,6 @@
                 <li>bottom-left</li>
                 <li>bottom-right</li>
             </ul>
-        </div>
-        <div class="option">
-            <h4><code>toobartemplate</code></h4>
-            <p>
-                Either a function that returns HTML or a template. If specified, it replaces the default toolbar.
-            </p>
         </div>
         <div class="option">
             <h4><code>editmode</code></h4>
