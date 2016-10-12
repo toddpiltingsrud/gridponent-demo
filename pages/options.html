@@ -53,6 +53,27 @@
             </p>
         </div>
 
+        <div class="option">
+            <h4><code>refreshevent</code></h4>
+
+            <p>
+                The name of a custom jQuery event.
+                If present, gridponent will attach an event handler for this event to the document.
+                When the event is triggered, gridponent will refresh the grid.
+            </p>
+        </div>
+
+        <div class="option">
+            <h4><code>validate</code></h4>
+
+            <p>
+                A function for handling validation errors during editing.
+                After submitting a model to the server, gridponent will pass any validation errors returned by the server to its internal validate function.
+                This function simply lists the validation errors in a message box.
+                Override this function to provide your own custom validation handling logic.
+            </p>
+        </div>
+
         <p>
             Note: the function signatures for create, read, update and delete must match the following sample.
         </p>

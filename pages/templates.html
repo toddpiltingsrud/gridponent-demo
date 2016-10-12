@@ -121,6 +121,7 @@ columns: [
             <li>headerCellContent</li>
             <li>input</li>
             <li>pagerBar</li>
+            <li>sortStyle</li>
             <li>tableBody</li>
             <li>tableRow</li>
             <li>tableRowCell</li>
@@ -128,6 +129,10 @@ columns: [
             <li>tableRows</li>
             <li>toolbar</li>
         </ul>
+
+        <p>
+            <a href="https://github.com/toddpiltingsrud/gridponent/blob/master/src/templates.js" target="_blank">View the source code for the templates on github.</a>
+        </p>
 
         <p>
             Gridponent uses a dependency injection mechanism to supply each template with whatever it needs to do its job.
@@ -156,14 +161,14 @@ columns: [
             To override a base template, add a function with the same name as the base template to your main configuration object.
         </p>
         <p>
-            Here's an example that adds a colspan attribute to one of the columns.
+            Here's an example that overrides the "tableRowCell" template to add a colspan attribute to one of the columns.
         </p>
 
         <pre>
 gridponent('#grid1', {
-    read:'products',
-    fixedheaders:true,
-    responsive:true,
+    read: data.products,
+    fixedheaders: true,
+    responsive: true,
     tableRowCell: function ( $column, $injector ) {
         
         if ($column.field === 'Description') {
@@ -180,7 +185,7 @@ gridponent('#grid1', {
         }
         else {
             // call the base template for the other columns
-            // you must use the "base" function here or the injector will call your override again
+            // you must use the "base" function here instead of "exec" or the injector will call your override again
             return $injector.base( 'tableRowCell' );
         }  
     
